@@ -4,10 +4,11 @@
 #include <stdexcept>
 #include <cmath>
 
+namespace KTC{
 using RcSymIdx = std::shared_ptr<int>; // SymIdx是一个int类型的共享指针?
 using SymIdx = int;
 
-// 定义Imm类
+    // 定义Imm类
 class Imm {
 public:
     enum class Type {
@@ -1112,15 +1113,5 @@ private:
     Register rs1;
     Register rs2;
 };
-int main() {
-    // 示例用法
-    Register rd = Register::new_a(0);
-    Register rs1 = Register::new_s(1);
-    Register rs2 = Register::new_t(2);
-    Imm imm = Imm::new_literal_isize(42);
-
-    PseudoInstr instr(PseudoInstr::Type::Ble, rd, rs1, imm);
-    std::cout << instr << std::endl;
-    std::cout << "结束\n";
-    return 0;
 }
+
