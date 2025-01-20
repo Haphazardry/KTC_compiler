@@ -1,0 +1,7 @@
+riscv64-linux-gnu-gcc -S -o test_asm.s test_asm.c 生成text_asm.c在riscv64上的汇编代码
+riscv64-linux-gnu-gcc -o hello hello.c            生成hello.c的二进制文件
+riscv64-linux-gnu-gcc hello.c hello               动态链接标准C库生成可执行文件，可加--static静态连接生成可执行文件
+riscv64-linux-gnu-gcc -c test_asm.s -o  test_asm.o 将汇编文件只编译为目标文件，不链接。
+riscv64-linux-gnu-gcc --static test_asm.o -lysys -L./ -o test_asm.elf -lc 将目标文件静态（--static）链接标准C库(libc)（-lc）,同时链接./目录下（L./）的libsysy库（-lsysy）
+riscv64-linux-gnu-as ./test_asm.s -o test_asm.o   生成test_asm.s汇编码对应的二进制文件
+qemu-riscv64-static ./test_asm.elf                用虚拟riscv64静态执行 test_asm.elf文件
