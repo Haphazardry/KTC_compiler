@@ -36,10 +36,10 @@ public:
     }
 
     static Imm from_offset(int offset) {
-        if (offset < -2048 || offset > 2047) {
+        if (offset < -2048 || offset > 2047) {  // 12位立即数
             throw std::runtime_error("you can't use an offset from");
         }
-        return Imm(Type::Literal, std::make_shared<int>(offset));
+        return Imm(Type::Literal, std::make_shared<int>(offset));   //int类型的共享指针
     }
 
     friend std::ostream& operator<<(std::ostream& os, const Imm& imm);
@@ -142,7 +142,7 @@ public:
             case Type::FArg:
                 return "fa" + std::to_string(reg_idx);
             case Type::FSaved:
-                if (reg_idx <= 1) {
+                if (reg_idx <= 1) {     //????
                     return "f" + std::to_string(reg_idx + 8); // f8, f9
                 } else if (reg_idx >= 2 && reg_idx <= 15) {
                     return "f" + std::to_string(reg_idx + 18 - 2); // f18 to f31
@@ -195,8 +195,8 @@ std::ostream& operator<<(std::ostream& os, const Register& reg) {
 
 class RV64Instr {
 public:
-    virtual ~RV64Instr() = default;
-    virtual void print(std::ostream& os) const = 0;
+    virtual ~RV64Instr() = default;     //???析构函数，虚函数，确保派生类析构函数被调用
+    virtual void print(std::ostream& os) const = 0; //???纯虚函数，子类必须实现
 };
 
 std::ostream& operator<<(std::ostream& os, const RV64Instr& instr) {
@@ -260,7 +260,7 @@ public:
         Sd,         // {rd,symbol,rt} 将寄存器rt的字节存储到指定地址或符号位
 
         Fmv_s,      // {rd,rs} 单精度浮点移动
-        Fmv_w_x,    // {rd,rs} 单精度浮点移动，带扩展
+        Fmv_x_w,    // {rd,rs} 单精度浮点移动，带扩展
         Fabs_s,     // {rd,rs} 单精度取绝对值
         Fneg_s,     // {rd,rs} 单精度取反
         Fmv_d,      // {rd,rs} 双精度浮点移动
@@ -397,7 +397,7 @@ public:
             case Type::Fmv_s:
                 os << "fmv.s " << rd << ", " << rs;
                 break;
-            case Type::Fmv_w_x:
+            case Type::Fmv_x_w:
                 os << "fmv.w.x " << rd << ", " << rs;
                 break;
             case Type::Fabs_s:
@@ -448,7 +448,7 @@ public:
         } else if (rd.is_fpr() && rs.is_fpr()) {
             return PseudoInstr(Type::Fmv_s, rd, rs); // 生成 fmv.s 指令
         } else if (rd.is_fpr() && rs.is_gpr()) {
-            return PseudoInstr(Type::Fmv_w_x, rd, rs); // 生成 fmv.w.x 指令
+            return PseudoInstr(Type::Fmv_x_w, rd, rs); // 生成 fmv.x.w 指令
         } else {
             throw std::runtime_error("Can't move from register " + rs.get_name() + " to " + rd.get_name());
         }
@@ -1016,8 +1016,8 @@ private:
 class Trans : public BaseIntInstr {
 public:
     enum class Type {
-        FCVT_W_S,  // {rd, rs1}
-        FCVT_S_W   // {rd, rs1}
+        FCVT_W_S,  // {rd, rs1}把寄存器 x[rs1]中的 32 位二进制补码表示的整数转化为单精度浮点数，再写入 f[rd]中。
+        FCVT_S_W   // {rd, rs1}把寄存器 f[rs1]中的单精度浮点数转化为 32 位二进制补码表示的整数，再写入 x[rd]中。
     };
 
     // 构造函数
