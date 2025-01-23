@@ -4,7 +4,7 @@
 # compile CXX with /usr/bin/c++
 CXX_DEFINES = 
 
-CXX_INCLUDES = -I/mnt/d/desktop/Competitions/Compiler/KTC/include
+CXX_INCLUDES = -I/home/gululu/KTC_compiler/include
 
 CXX_FLAGS = -std=gnu++17
 

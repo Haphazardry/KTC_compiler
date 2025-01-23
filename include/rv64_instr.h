@@ -3,7 +3,7 @@
 #include <memory>
 #include <stdexcept>
 #include <cmath>
-
+#include <variant>
 namespace KTC{
 using RcSymIdx = std::shared_ptr<int>; // SymIdx是一个int类型的共享指针?
 using SymIdx = int;
@@ -52,13 +52,13 @@ private:
 std::ostream& operator<<(std::ostream& os, const Imm& imm) {
     switch (imm.type) {
         case Imm::Type::GlobalLabel:
-            os << "GlobalLabel(" << *imm.symidx << ")";
+            os << *imm.symidx ;
             break;
         case Imm::Type::LocalLabel:
-            os << "LocalLabel(" << *imm.symidx << ")";
+            os << *imm.symidx ;
             break;
         case Imm::Type::Literal:
-            os << "Literal(" << *imm.symidx << ")";
+            os << *imm.symidx ;
             break;
     }
     return os;
@@ -113,6 +113,18 @@ public:
     static Register new_fs(int idx) {
         if (idx < 0 || idx >= 16) throw std::runtime_error("Invalid float saved register index");
         return Register(Type::FSaved, idx);
+    }
+    static Register new_sp() {
+        return Register(Type::SP);
+    }
+
+    static Register new_ra() {
+        return Register(Type::RA);
+    }
+
+
+    static Register new_gp() {
+        return Register(Type::GP);
     }
 
     bool is_fpr() const {
@@ -196,11 +208,11 @@ std::ostream& operator<<(std::ostream& os, const Register& reg) {
 class RV64Instr {
 public:
     virtual ~RV64Instr() = default;     //???析构函数，虚函数，确保派生类析构函数被调用
-    virtual void print(std::ostream& os) const = 0; //???纯虚函数，子类必须实现
+    virtual void get_string(std::ostream& os) const = 0; //???纯虚函数，子类必须实现
 };
 
 std::ostream& operator<<(std::ostream& os, const RV64Instr& instr) {
-    instr.print(os);
+    instr.get_string(os);
     return os;
 }
 
@@ -281,7 +293,7 @@ public:
     PseudoInstr(Type type, Register rd, Register rs, Imm imm = Imm::new_literal_isize(0))
         : type(type), rd(rd), rs(rs), imm(imm) {}
 
-    void print(std::ostream& os) const override {
+    void get_string(std::ostream& os) const override {
         switch (type) {
             case Type::Nop:
                 os << "nop";
@@ -460,11 +472,7 @@ private:
     Register rs;
     Imm imm;
 };
-
-// 定义BaseIntInstr类
-class BaseIntInstr : public RV64Instr {
-public:
-    enum class Type {
+using BaseIntInstrVarint=std::variant<
         Shifts,
         Arithmetic,
         Logical,
@@ -477,13 +485,51 @@ public:
         Stores,
         Trans,
         MulAdd,
-        MinMax
-    };
-    virtual void print(std::ostream& os) const = 0;
+        MinMax>;
+class BaseIntInstr{
+public:
+    BaseIntInstr(BaseIntInstrVarint varint):varint(varint){    }
+    void process() const{
+        std::visit(Visitor{},varint);
+    }
+    friend std::ostream& operator<<(std::ostream& os, const BaseIntInstr& instr) ;
+private:
+    BaseIntInstrVarint varint;
+
+    // 访问器
+    struct Visitor {
+        void operator()(const Shifts& instr) const {
+            std::cout<<instr<<std::endl;
+        }
+    }
+
 };
+// // 定义BaseIntInstr类
+// class BaseIntInstr : public RV64Instr {
+// public:
+//     enum class Type {
+//         Shifts,
+//         Arithmetic,
+//         Logical,
+//         Compare,
+//         Branch,
+//         JumpAndLink,
+//         Environment,
+//         CSR,
+//         Loads,
+//         Stores,
+//         Trans,
+//         MulAdd,
+//         MinMax
+//     };
+//     virtual void get_string(std::ostream& os) const = 0;
+
+//     BaseIntInstr(){}
+//     BaseIntInstr(Type type) : type(type) {}
+// };
 
 // 定义Shifts类
-class Shifts : public BaseIntInstr {
+class Shifts  {
 public:
     enum class Type {
         // {rd,rs1,rs2} 逻辑左移,将寄存器rs1值左移寄存器rs2值的低6位（rv64I）存到寄存器rd中
@@ -503,7 +549,7 @@ public:
     Shifts(Type type, Register rd, Register rs1, Register rs2, Imm shamt = Imm::new_literal_isize(0))
         : type(type), rd(rd), rs1(rs1), rs2(rs2), shamt(shamt) {}
 
-    void print(std::ostream& os) const override {
+    void get_string(std::ostream& os) const{
         switch (type) {
             case Type::Sll:
                 os << "sll " << rd << ", " << rs1 << ", " << rs2;
@@ -547,7 +593,7 @@ public:
     // Shifts new_slli_from_multiple(Register re1,Register re2, int mul){
     //     //usize 没定义，懒得研究怎么定义了，后面再补
     // }
-
+    friend std::ostream& operator<<(std::ostream& os, const Shifts& instr);
 private:
     Type type;
     Register rd;
@@ -557,7 +603,7 @@ private:
 };
 
 //定义Arithmetic 类
-class Arithmetic : public BaseIntInstr{
+class Arithmetic {
 public:
     enum class Type{
         ADD,ADDW,   // {rd,rs1,rs2}
@@ -579,7 +625,10 @@ public:
         FDIVS,
         FSQRTS
     };
-    void print(std::ostream& os) const override {
+
+    // Arithmetic(Type type, Register rd, Register rs1, Register rs2 = Register(), Imm imm = Imm())
+    //     : type(type), rd(rd), rs1(rs1), rs2(rs2), imm(imm) {}
+    void get_string(std::ostream& os) {
         switch (type) {
             case Type::ADD:
                 os << "add " << rd << ", " << rs1 << ", " << rs2;
@@ -652,7 +701,7 @@ private:
 };
 
 // 定义Logical 类
-class Logical : public BaseIntInstr {
+class Logical  {
 public:
     enum class Type {
         XOR,   // {rd, rs1, rs2}
@@ -666,7 +715,7 @@ public:
     Logical(Type type, Register rd, Register rs1, Register rs2 = Register(), Imm imm = Imm())
         : type(type), rd(rd), rs1(rs1), rs2(rs2), imm(imm) {}
 
-    void print(std::ostream& os) const override {
+    void get_string(std::ostream& os)  {
         switch (type) {
             case Type::XOR:
                 os << "xor " << rd << ", " << rs1 << ", " << rs2;
@@ -700,7 +749,7 @@ private:
 };
 
 // 定义Compare 类
-class Compare : public BaseIntInstr {
+class Compare  {
 public:
     enum class Type {
         SLT,    // {rd, rs1, rs2}
@@ -715,7 +764,7 @@ public:
     Compare(Type type, Register rd, Register rs1, Register rs2 =Register() , Imm imm = Imm())
         : type(type), rd(rd), rs1(rs1), rs2(rs2), imm(imm) {}
 
-    void print(std::ostream& os) const override {
+    void get_string(std::ostream& os) {
         switch (type) {
             case Type::SLT:
                 os << "slt " << rd << ", " << rs1 << ", " << rs2;
@@ -752,7 +801,7 @@ private:
 };
 
 // 定义Branch 类
-class Branch : public BaseIntInstr {
+class Branch  {
 public:
     enum class Type {
         BEQ,   // {rs1, rs2, imm}
@@ -767,7 +816,7 @@ public:
         : type(type), rs1(rs1), rs2(rs2), imm(imm) {}
 
 
-    void print(std::ostream& os) const override {
+    void get_string(std::ostream& os) {
         switch (type) {
             case Type::BEQ:
                 os << "beq " << rs1 << ", " << rs2 << ", " << imm;
@@ -800,7 +849,7 @@ private:
 };
 
 // 定义JumpAndLink 类
-class JumpAndLink : public BaseIntInstr {
+class JumpAndLink  {
 public:
     enum class Type {
         JAL,   // {rd, imm}
@@ -810,7 +859,7 @@ public:
     JumpAndLink(Type type, Register rd, Register rs1 = Register(), Imm imm = Imm())
         : type(type), rd(rd), rs1(rs1), imm(imm) {}
 
-    void print(std::ostream& os) const override {
+    void get_string(std::ostream& os)  {
         switch (type) {
             case Type::JAL:
                 os << "jal " << rd << ", " << imm;
@@ -831,7 +880,7 @@ private:
 };
 
 // 定义Environment 类
-class Environment : public BaseIntInstr {
+class Environment {
 public:
     enum class Type {
         ECALL,   // 环境调用
@@ -840,7 +889,7 @@ public:
 
     Environment(Type type) : type(type) {}
 
-    void print(std::ostream& os) const override {
+    void get_string(std::ostream& os)  {
         switch (type) {
             case Type::ECALL:
                 os << "ecall";
@@ -858,7 +907,7 @@ private:
 };
 
 // 定义CSR 类
-class CSR : public BaseIntInstr {
+class CSR {
 public:
     enum class Type {
         CSRRW,   // {rd, csr, rs1}
@@ -872,7 +921,7 @@ public:
     CSR(Type type, Register rd, Register csr, Register rs1 = Register(), Imm imm = Imm())
         : type(type), rd(rd), csr(csr), rs1(rs1), imm(imm) {}
 
-    void print(std::ostream& os) const override {
+    void get_string(std::ostream& os) {
         switch (type) {
             case Type::CSRRW:
                 os << "csrrw " << rd << ", " << csr << ", " << rs1;
@@ -906,7 +955,7 @@ private:
 };
 
 // 定义Loads 类
-class Loads : public BaseIntInstr {
+class Loads  {
 public:
     enum class Type {
         LB,    // {rd, rs1, imm}
@@ -923,7 +972,7 @@ public:
     Loads(Type type, Register rd, Register rs1, Imm imm)
         : type(type), rd(rd), rs1(rs1), imm(imm) {}
 
-    void print(std::ostream& os) const override {
+    void get_string(std::ostream& os)  {
         switch (type) {
             case Type::LB:
                 os << "lb " << rd << ", " << imm << "(" << rs1 << ")";
@@ -965,7 +1014,7 @@ private:
 };
 
 // 定义Stores 类
-class Stores : public BaseIntInstr {
+class Stores {
 public:
     enum class Type {
         SB,    // {rs1, rs2, imm}
@@ -980,7 +1029,7 @@ public:
     Stores(Type type, Register rs1, Register rs2, Imm imm)
         : type(type), rs1(rs1), rs2(rs2), imm(imm) {}
 
-    void print(std::ostream& os) const override {
+    void get_string(std::ostream& os) {
         switch (type) {
             case Type::SB:
                 os << "sb " << rs1 << ", " << imm << "(" << rs2 << ")";
@@ -1013,7 +1062,7 @@ private:
 };
 
 // 定义Trans 类
-class Trans : public BaseIntInstr {
+class Trans {
 public:
     enum class Type {
         FCVT_W_S,  // {rd, rs1}把寄存器 x[rs1]中的 32 位二进制补码表示的整数转化为单精度浮点数，再写入 f[rd]中。
@@ -1024,7 +1073,7 @@ public:
     Trans(Type type, Register rd, Register rs1)
         : type(type), rd(rd), rs1(rs1) {}
 
-    void print(std::ostream& os) const override {
+    void get_string(std::ostream& os) {
         switch (type) {
             case Type::FCVT_W_S:
                 os << "fcvt.w.s " << rd << ", " << rs1 << ", rtz";
@@ -1044,7 +1093,7 @@ private:
 };
 
 // 定义MulAdd 类
-class MulAdd : public BaseIntInstr {
+class MulAdd {
 public:
     enum class Type {
         FMADDS,   // {rd, rs1, rs2, rs3}
@@ -1056,7 +1105,7 @@ public:
     MulAdd(Type type, Register rd, Register rs1, Register rs2, Register rs3)
         : type(type), rd(rd), rs1(rs1), rs2(rs2), rs3(rs3) {}
 
-    void print(std::ostream& os) const override {
+    void get_string(std::ostream& os)  {
         switch (type) {
             case Type::FMADDS:
                 os << "fmadd.s " << rd << ", " << rs1 << ", " << rs2 << ", " << rs3;
@@ -1084,7 +1133,7 @@ private:
 };
 
 // 定义MinMax 类
-class MinMax : public BaseIntInstr {
+class MinMax {
 public:
     enum class Type {
         FMINS,  // {rd, rs1, rs2}
@@ -1094,7 +1143,7 @@ public:
     MinMax(Type type, Register rd, Register rs1, Register rs2)
         : type(type), rd(rd), rs1(rs1), rs2(rs2) {}
 
-    void print(std::ostream& os) const override {
+    void get_string(std::ostream& os)  {
         switch (type) {
             case Type::FMINS:
                 os << "fmin.s " << rd << ", " << rs1 << ", " << rs2;
@@ -1113,5 +1162,9 @@ private:
     Register rs1;
     Register rs2;
 };
+std::ostream& operator<<(std::ostream& os, const Shifts& instr) {
+    instr.get_string(os);
+    return os;
+}
 }
 

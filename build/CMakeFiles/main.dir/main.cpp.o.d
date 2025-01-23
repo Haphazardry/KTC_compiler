@@ -1,7 +1,6 @@
-CMakeFiles/main.dir/main.cpp.o: \
- /mnt/d/desktop/Competitions/Compiler/KTC/main.cpp \
+CMakeFiles/main.dir/main.cpp.o: /home/gululu/KTC_compiler/main.cpp \
  /usr/include/stdc-predef.h \
- /mnt/d/desktop/Competitions/Compiler/KTC/include/rv64_instr.h \
+ /home/gululu/KTC_compiler/include/rv64_instr.h \
  /usr/include/c++/11/iostream \
  /usr/include/x86_64-linux-gnu/c++/11/bits/c++config.h \
  /usr/include/x86_64-linux-gnu/c++/11/bits/os_defines.h \

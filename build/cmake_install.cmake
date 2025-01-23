@@ -1,4 +1,4 @@
-# Install script for directory: /mnt/d/desktop/Competitions/Compiler/KTC
+# Install script for directory: /home/gululu/KTC_compiler
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -50,5 +50,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/mnt/d/desktop/Competitions/Compiler/KTC/build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/gululu/KTC_compiler/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
