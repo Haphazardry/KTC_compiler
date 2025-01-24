@@ -204,306 +204,20 @@ std::ostream& operator<<(std::ostream& os, const Register& reg) {
     }
     return os;
 }
+// 弃用
+// class RV64Instr {
+// public:
+//     virtual ~RV64Instr() = default;     //???析构函数，虚函数，确保派生类析构函数被调用
+//     virtual void get_string(std::ostream& os) const = 0; //???纯虚函数，子类必须实现
+// };
 
-class RV64Instr {
-public:
-    virtual ~RV64Instr() = default;     //???析构函数，虚函数，确保派生类析构函数被调用
-    virtual void get_string(std::ostream& os) const = 0; //???纯虚函数，子类必须实现
-};
-
-std::ostream& operator<<(std::ostream& os, const RV64Instr& instr) {
-    instr.get_string(os);
-    return os;
-}
+// std::ostream& operator<<(std::ostream& os, const RV64Instr& instr) {
+//     instr.get_string(os);
+//     return os;
+// }
 
 // 定义PseudoInstr类
-class PseudoInstr : public RV64Instr {
-public:
-    enum class Type {
-        Nop,    // {} 无操作指令
-        Neg,    // {rd,rs} rs取反存到rd中，使用64为
-        Negw,   // {rd,rs} rs取反存到rd中,截取32位，最后拓展
 
-        // 和0直接比
-        Snez,   // {rd,rs} 如果rs非零，则将1存入寄存器rd中
-        Sltz,   // {rd,rs} 如果rs小于零，则将1存入寄存器rd中
-        Sgtz,   // {rd,rs} 如果rs大于零，则将1存入寄存器rd中
-        Seqz,   // {rd,rs} 如果rs等于零，则将1存入寄存器rd中
-
-        // 有条件跳转
-        /// 和0比
-        Beqz,   // {rd,offset} 如果rs等于零，则根据offset进行分支，pc+offset
-        Bnez,   // {rd,offset} 如果rs不等于零，则根据offset进行分支，pc+offset
-        Blez,   // {rd,offset} 如果rs小于等于零，则根据offset进行分支，pc+offset
-        Bgez,   // {rd,offset} 如果rs大于等于零，则根据offset进行分支，pc+offset
-        Bltz,   // {rd,offset} 如果rs小于零，则根据offset进行分支，pc+offset
-        Bgtz,   // {rd,offset} 如果rs大于零，则根据offset进行分支，pc+offset
-        /// 两两比较
-        Bgt,    // {rs1,rs2,offset} 如果rs1大于rs2的值(有符号数)，则根据offset进行分支 
-        Ble,    // {rs1,rs2,offset} 如果rs1小于rs2的值(有符号数)，则根据offset进行分支
-        Bgtu,   // {rs1,rs2,offset} 如果rs1大于rs2的值(无符号数)，则根据offset进行分支
-        Bleu,   // {rs1,rs2,offset} 如果rs1小于等于rs2的值(无符号数)，则根据offset进行分支
-        
-        // 无条件跳转
-        J,      // {offset} 无条件跳转到指定偏移量
-        Jr,     // {rs} 无条件跳转到寄存器rs指示的地址/返回调用函数
-        Ret,
-        Tail,   // {offset} 用于尾调用优化，跳转到偏移量offset指示的地址
-
-        //特殊寄存器操作
-        Rdinstret,  //{rd} 读取特定硬件寄存器（如指令计数器、周期计数器、时间寄存器）的值到寄存器rd中
-        Rdinstreth,
-        Rdcycle,
-        Rdcycleh,
-        Rdtime,
-        Rdtimeh,
-
-        //内存访问load
-        Lla,        // {rd,symbol} 加载指定加载局部或相对地址到寄存器rd中
-        La,         // {rd,symbol} 加载全局或绝对地址到寄存器rd中         
-        Lb,         // {rd,symbol} 加载符号位的字节到寄存器rd中
-        Lh,         // {rd,symbol} 加载符号位的半字节到寄存器rd中
-        Lw,         // {rd,symbol} 加载符号位的字到寄存器rd中
-        Ld,         // {rd,symbol} 加载符号位的双字到寄存器rd中
-        //内存访问store
-        Sb,         // {rd,symbol,rt} 将寄存器rt的字节存储到指定地址或符号位
-        Sh,         // {rd,symbol,rt} 将寄存器rt的字节存储到指定地址或符号位
-        Sw,         // {rd,symbol,rt} 将寄存器rt的字节存储到指定地址或符号位
-        Sd,         // {rd,symbol,rt} 将寄存器rt的字节存储到指定地址或符号位
-
-        Fmv_s,      // {rd,rs} 单精度浮点移动
-        Fmv_x_w,    // {rd,rs} 单精度浮点移动，带扩展
-        Fabs_s,     // {rd,rs} 单精度取绝对值
-        Fneg_s,     // {rd,rs} 单精度取反
-        Fmv_d,      // {rd,rs} 双精度浮点移动
-        Fabs_d,     // {rd,rs} 双精度取绝对值
-        Fneg_d,     // {rd,rs} 双精度取反
-        
-        Li,         // {rd,imm} 将立即数imm加载到寄存器rd中
-        Mv,         // {rd,rs} 将寄存器rs的值移动到寄存器rd中
-        Not,        // {rd,rs} 将寄存器rs的值位取反存到寄存器rd中
-        Sext_w,     // {rd,rs} 将寄存器rs的值有符号扩展到寄存器rd中
-        
-        Jal,        // {offset}
-        Jalr,       // {rs}
-        Call,       // {offset}
-        Fence       // {}
-    };
-
-    PseudoInstr(Type type, Register rd, Register rs, Imm imm = Imm::new_literal_isize(0))
-        : type(type), rd(rd), rs(rs), imm(imm) {}
-
-    void get_string(std::ostream& os) const override {
-        switch (type) {
-            case Type::Nop:
-                os << "nop";
-                break;
-            case Type::Neg:
-                os << "neg " << rd << ", " << rs;
-                break;
-            case Type::Negw:
-                os << "negw " << rd << ", " << rs;
-                break;
-            case Type::Snez:
-                os << "snez " << rd << ", " << rs;
-                break;
-            case Type::Sltz:
-                os << "sltz " << rd << ", " << rs;
-                break;
-            case Type::Sgtz:
-                os << "sgtz " << rd << ", " << rs;
-                break;
-            case Type::Seqz:
-                os << "seqz " << rd << ", " << rs;
-                break;
-            case Type::Beqz:
-                os << "beqz " << rs << ", " << imm;
-                break;
-            case Type::Bnez:
-                os << "bnez " << rs << ", " << imm;
-                break;
-            case Type::Blez:
-                os << "blez " << rs << ", " << imm;
-                break;
-            case Type::Bgez:
-                os << "bgez " << rs << ", " << imm;
-                break;
-            case Type::Bltz:
-                os << "bltz " << rs << ", " << imm;
-                break;
-            case Type::Bgtz:
-                os << "bgtz " << rs << ", " << imm;
-                break;
-            case Type::Bgt:
-                os << "bgt " << rs << ", " << rd << ", " << imm;
-                break;
-            case Type::Ble:
-                os << "ble " << rs << ", " << rd << ", " << imm;
-                break;
-            case Type::Bgtu:
-                os << "bgtu " << rs << ", " << rd << ", " << imm;
-                break;
-            case Type::Bleu:
-                os << "bleu " << rs << ", " << rd << ", " << imm;
-                break;
-            case Type::J:
-                os << "j " << imm;
-                break;
-            case Type::Jr:
-                os << "jr " << rs;
-                break;
-            case Type::Ret:
-                os << "ret";
-                break;
-            case Type::Tail:
-                os << "tail " << imm;
-                break;
-            case Type::Rdinstret:
-                os << "rdinstret " << rd;
-                break;
-            case Type::Rdinstreth:
-                os << "rdinstreth " << rd;
-                break;
-            case Type::Rdcycle:
-                os << "rdcycle " << rd;
-                break;
-            case Type::Rdcycleh:
-                os << "rdcycleh " << rd;
-                break;
-            case Type::Rdtime:
-                os << "rdtime " << rd;
-                break;
-            case Type::Rdtimeh:
-                os << "rdtimeh " << rd;
-                break;
-            case Type::Lla:
-                os << "lla " << rd << ", " << imm;
-                break;
-            case Type::La:
-                os << "la " << rd << ", " << imm;
-                break;
-            case Type::Lb:
-                os << "lb " << rd << ", " << imm;
-                break;
-            case Type::Lh:
-                os << "lh " << rd << ", " << imm;
-                break;
-            case Type::Lw:
-                os << "lw " << rd << ", " << imm;
-                break;
-            case Type::Ld:
-                os << "ld " << rd << ", " << imm;
-                break;
-            case Type::Sb:
-                os << "sb " << rd << ", " << imm << ", " << rs;
-                break;
-            case Type::Sh:
-                os << "sh " << rd << ", " << imm << ", " << rs;
-                break;
-            case Type::Sw:
-                os << "sw " << rd << ", " << imm << ", " << rs;
-                break;
-            case Type::Sd:
-                os << "sd " << rd << ", " << imm << ", " << rs;
-                break;
-            case Type::Fmv_s:
-                os << "fmv.s " << rd << ", " << rs;
-                break;
-            case Type::Fmv_x_w:
-                os << "fmv.w.x " << rd << ", " << rs;
-                break;
-            case Type::Fabs_s:
-                os << "fabs.s " << rd << ", " << rs;
-                break;
-            case Type::Fneg_s:
-                os << "fneg.s " << rd << ", " << rs;
-                break;
-            case Type::Fmv_d:
-                os << "fmv.d " << rd << ", " << rs;
-                break;
-            case Type::Fabs_d:
-                os << "fabs.d " << rd << ", " << rs;
-                break;
-            case Type::Fneg_d:
-                os << "fneg.d " << rd << ", " << rs;
-                break;
-            case Type::Li:
-                os << "li " << rd << ", " << imm;
-                break;
-            case Type::Mv:
-                os << "mv " << rd << ", " << rs;
-                break;
-            case Type::Not:
-                os << "not " << rd << ", " << rs;
-                break;
-            case Type::Sext_w:
-                os << "sext.w " << rd << ", " << rs;
-                break;
-            case Type::Jal:
-                os << "jal x1, " << imm;
-                break;
-            case Type::Jalr:
-                os << "jalr x1, " << rs << ", 0";
-                break;
-            case Type::Call:
-                os << "call " << imm;
-                break;
-            case Type::Fence:
-                os << "fence iorw, iorw";
-                break;
-        }
-    }
-
-    static PseudoInstr new_reg_mv(const Register& rd, const Register& rs) {
-        if (rd.is_gpr() && rs.is_gpr()) {
-            return PseudoInstr(Type::Mv, rd, rs); // 生成 mv 指令
-        } else if (rd.is_fpr() && rs.is_fpr()) {
-            return PseudoInstr(Type::Fmv_s, rd, rs); // 生成 fmv.s 指令
-        } else if (rd.is_fpr() && rs.is_gpr()) {
-            return PseudoInstr(Type::Fmv_x_w, rd, rs); // 生成 fmv.x.w 指令
-        } else {
-            throw std::runtime_error("Can't move from register " + rs.get_name() + " to " + rd.get_name());
-        }
-    }
-
-private:
-    Type type;
-    Register rd;
-    Register rs;
-    Imm imm;
-};
-using BaseIntInstrVarint=std::variant<
-        Shifts,
-        Arithmetic,
-        Logical,
-        Compare,
-        Branch,
-        JumpAndLink,
-        Environment,
-        CSR,
-        Loads,
-        Stores,
-        Trans,
-        MulAdd,
-        MinMax>;
-class BaseIntInstr{
-public:
-    BaseIntInstr(BaseIntInstrVarint varint):varint(varint){    }
-    void process() const{
-        std::visit(Visitor{},varint);
-    }
-    friend std::ostream& operator<<(std::ostream& os, const BaseIntInstr& instr) ;
-private:
-    BaseIntInstrVarint varint;
-
-    // 访问器
-    struct Visitor {
-        void operator()(const Shifts& instr) const {
-            std::cout<<instr<<std::endl;
-        }
-    }
-
-};
 // // 定义BaseIntInstr类
 // class BaseIntInstr : public RV64Instr {
 // public:
@@ -545,9 +259,15 @@ public:
         // {rd,rs1,shamt} 立即数算术右移
         Srai,Sraiw
     };
-
-    Shifts(Type type, Register rd, Register rs1, Register rs2, Imm shamt = Imm::new_literal_isize(0))
-        : type(type), rd(rd), rs1(rs1), rs2(rs2), shamt(shamt) {}
+    // 对于不同的指令类型，参数不同,我在这里使用了函数重载
+    // {rd,rs1,rs2}
+    Shifts(Type type, Register rd, Register rs1, Register rs2)
+        : type(type), rd(rd), rs1(rs1), rs2(rs2) {}
+    // {rd,rs1,imm}
+    Shifts(Type type, Register rd, Register rs1,  Imm shamt = Imm::new_literal_isize(0))
+        : type(type), rd(rd), rs1(rs1), shamt(shamt) {}
+    // Shifts(Type type, Register rd, Register rs1, Register rs2 = Register(), Imm shamt = Imm())
+    //     : type(type), rd(rd), rs1(rs1), rs2(rs2), shamt(shamt) {}
 
     void get_string(std::ostream& os) const{
         switch (type) {
@@ -593,7 +313,7 @@ public:
     // Shifts new_slli_from_multiple(Register re1,Register re2, int mul){
     //     //usize 没定义，懒得研究怎么定义了，后面再补
     // }
-    friend std::ostream& operator<<(std::ostream& os, const Shifts& instr);
+    // friend std::ostream& operator<<(std::ostream& os, const Shifts& instr);
 private:
     Type type;
     Register rd;
@@ -612,23 +332,30 @@ public:
         LUI,        // {rd,imm} 高位立即数加载
         AUIPC,      // {rd,imm}    
 
-        MUL,
-        MULW,
-        DIV,
-        DIVW,
-        REM,
-        REMW,
+        MUL,        // {rd,rs1,rs2}
+        MULW,       // {rd,rs1,rs2}
+        DIV,        // {rd,rs1,rs2}
+        DIVW,       // {rd,rs1,rs2}
+        REM,        // {rd,rs1,rs2}
+        REMW,       // {rd,rs1,rs2}
 
-        FADDS,
-        FSUBS,
-        FMULS,
-        FDIVS,
-        FSQRTS
+        FADDS,      // {rd,rs1,rs2}
+        FSUBS,      // {rd,rs1,rs2}
+        FMULS,      // {rd,rs1,rs2}
+        FDIVS,      // {rd,rs1,rs2}
+        FSQRTS      // {rd,rs1,rs2}
     };
 
-    // Arithmetic(Type type, Register rd, Register rs1, Register rs2 = Register(), Imm imm = Imm())
-    //     : type(type), rd(rd), rs1(rs1), rs2(rs2), imm(imm) {}
-    void get_string(std::ostream& os) {
+    // {rd,rs1,rs2} 
+    Arithmetic(Type type, Register rd, Register rs1, Register rs2 )
+        : type(type), rd(rd), rs1(rs1), rs2(rs2){}
+    // {rd,rs1,imm}
+    Arithmetic(Type type, Register rd, Register rs1,  Imm imm = Imm())
+        : type(type), rd(rd), rs1(rs1), imm(imm) {}
+    // {rd,imm}
+    Arithmetic(Type type, Register rd, Imm imm = Imm())
+        : type(type), rd(rd), imm(imm) {}
+    void get_string(std::ostream& os) const{
         switch (type) {
             case Type::ADD:
                 os << "add " << rd << ", " << rs1 << ", " << rs2;
@@ -712,10 +439,14 @@ public:
         ANDI   // {rd, rs1, imm}
     };
 
-    Logical(Type type, Register rd, Register rs1, Register rs2 = Register(), Imm imm = Imm())
-        : type(type), rd(rd), rs1(rs1), rs2(rs2), imm(imm) {}
+    // {rd, rs1, rs2}
+    Logical(Type type, Register rd, Register rs1, Register rs2 )
+        : type(type), rd(rd), rs1(rs1), rs2(rs2){}
+    // {rd, rs1, imm}
+    Logical(Type type, Register rd, Register rs1, Imm imm )
+        : type(type), rd(rd), rs1(rs1), imm(imm) {}
 
-    void get_string(std::ostream& os)  {
+    void get_string(std::ostream& os)  const{
         switch (type) {
             case Type::XOR:
                 os << "xor " << rd << ", " << rs1 << ", " << rs2;
@@ -757,14 +488,21 @@ public:
         SLTU,   // {rd, rs1, rs2}
         SLTIU,  // {rd, rs1, imm}
         FEQ_S,  // {rd, rs1, rs2}
+        // 单浮点精度比较
         FLT_S,  // {rd, rs1, rs2}
         FLE_S   // {rd, rs1, rs2}
     };
+    // {rd, rs1, rs2}
+    Compare(Type type, Register rd, Register rs1, Register rs2  )
+        : type(type), rd(rd), rs1(rs1), rs2(rs2) {}
+    // {rd, rs1, imm}
+    Compare(Type type, Register rd, Register rs1, Imm imm )
+        : type(type), rd(rd), rs1(rs1), imm(imm) {}
 
-    Compare(Type type, Register rd, Register rs1, Register rs2 =Register() , Imm imm = Imm())
-        : type(type), rd(rd), rs1(rs1), rs2(rs2), imm(imm) {}
+    // Compare(Type type, Register rd, Register rs1, Register rs2 =Register() , Imm imm = Imm())
+    //     : type(type), rd(rd), rs1(rs1), rs2(rs2), imm(imm) {}
 
-    void get_string(std::ostream& os) {
+    void get_string(std::ostream& os) const{
         switch (type) {
             case Type::SLT:
                 os << "slt " << rd << ", " << rs1 << ", " << rs2;
@@ -811,12 +549,12 @@ public:
         BLTU,  // {rs1, rs2, imm}
         BGEU   // {rs1, rs2, imm}
     };
-
+    // {rs1, rs2, imm}
     Branch(Type type, Register rs1, Register rs2, Imm imm)
         : type(type), rs1(rs1), rs2(rs2), imm(imm) {}
 
 
-    void get_string(std::ostream& os) {
+    void get_string(std::ostream& os) const{
         switch (type) {
             case Type::BEQ:
                 os << "beq " << rs1 << ", " << rs2 << ", " << imm;
@@ -856,10 +594,16 @@ public:
         JALR   // {rd, rs1, imm}
     };
 
-    JumpAndLink(Type type, Register rd, Register rs1 = Register(), Imm imm = Imm())
+    // {rd, imm}
+    JumpAndLink(Type type, Register rd, Imm imm )
         : type(type), rd(rd), rs1(rs1), imm(imm) {}
+    // {rd, rs1, imm}
+    JumpAndLink(Type type, Register rd, Register rs1 ,Imm imm )
+        : type(type), rd(rd), rs1(rs1), imm(imm) {}
+    // JumpAndLink(Type type, Register rd, Register rs1 = Register(), Imm imm = Imm())
+    //     : type(type), rd(rd), rs1(rs1), imm(imm) {}
 
-    void get_string(std::ostream& os)  {
+    void get_string(std::ostream& os)  const{
         switch (type) {
             case Type::JAL:
                 os << "jal " << rd << ", " << imm;
@@ -889,7 +633,7 @@ public:
 
     Environment(Type type) : type(type) {}
 
-    void get_string(std::ostream& os)  {
+    void get_string(std::ostream& os)  const{
         switch (type) {
             case Type::ECALL:
                 os << "ecall";
@@ -918,10 +662,16 @@ public:
         CSRRCI   // {rd, csr, imm}
     };
 
-    CSR(Type type, Register rd, Register csr, Register rs1 = Register(), Imm imm = Imm())
-        : type(type), rd(rd), csr(csr), rs1(rs1), imm(imm) {}
+    //  {rd, csr, rs1}
+    CSR(Type type, Register rd, Register csr, Register rs1  )
+        : type(type), rd(rd), csr(csr), rs1(rs1) {}
+    // {rd, csr, imm}
+    CSR(Type type, Register rd, Register csr,  Imm imm )
+        : type(type), rd(rd), csr(csr), imm(imm) {}
+    // CSR(Type type, Register rd, Register csr, Register rs1 = Register(), Imm imm = Imm())
+    //     : type(type), rd(rd), csr(csr), rs1(rs1), imm(imm) {}
 
-    void get_string(std::ostream& os) {
+    void get_string(std::ostream& os) const{
         switch (type) {
             case Type::CSRRW:
                 os << "csrrw " << rd << ", " << csr << ", " << rs1;
@@ -972,7 +722,7 @@ public:
     Loads(Type type, Register rd, Register rs1, Imm imm)
         : type(type), rd(rd), rs1(rs1), imm(imm) {}
 
-    void get_string(std::ostream& os)  {
+    void get_string(std::ostream& os)  const{
         switch (type) {
             case Type::LB:
                 os << "lb " << rd << ", " << imm << "(" << rs1 << ")";
@@ -1017,37 +767,37 @@ private:
 class Stores {
 public:
     enum class Type {
-        SB,    // {rs1, rs2, imm}
-        SH,    // {rs1, rs2, imm}
-        SW,    // {rs1, rs2, imm}
-        SD,    // {rs1, rs2, imm}
-        FSW,   // {rs1, rs2, imm}
-        FSD    // {rs1, rs2, imm}
+        SB,    // {rs1, rs2, imm}   命令写法为 sb rs2, imm(rs1)
+        SH,    // {rs1, rs2, imm}   命令写法为 sh rs2, imm(rs1)
+        SW,    // {rs1, rs2, imm}   命令写法为 sw rs2, imm(rs1)
+        SD,    // {rs1, rs2, imm}   命令写法为 sd rs2, imm(rs1)
+        FSW,   // {rs1, rs2, imm}   命令写法为 fsw rs2, imm(rs1)
+        FSD    // {rs1, rs2, imm}   命令写法为 fsd rs2, imm(rs1)
     };
 
 
     Stores(Type type, Register rs1, Register rs2, Imm imm)
         : type(type), rs1(rs1), rs2(rs2), imm(imm) {}
 
-    void get_string(std::ostream& os) {
+    void get_string(std::ostream& os) const{
         switch (type) {
             case Type::SB:
-                os << "sb " << rs1 << ", " << imm << "(" << rs2 << ")";
+                os << "sb " << rs2 << ", " << imm << "(" << rs1 << ")";// 这里注意顺序,rs2在前,rs1在后
                 break;
             case Type::SH:
-                os << "sh " << rs1 << ", " << imm << "(" << rs2 << ")";
+                os << "sh " << rs2 << ", " << imm << "(" << rs1 << ")";
                 break;
             case Type::SW:
-                os << "sw " << rs1 << ", " << imm << "(" << rs2 << ")";
+                os << "sw " << rs2 << ", " << imm << "(" << rs1 << ")";
                 break;
             case Type::SD:
-                os << "sd " << rs1 << ", " << imm << "(" << rs2 << ")";
+                os << "sd " << rs2 << ", " << imm << "(" << rs1 << ")";
                 break;
             case Type::FSW:
-                os << "fsw " << rs1 << ", " << imm << "(" << rs2 << ")";
+                os << "fsw " << rs2 << ", " << imm << "(" << rs1 << ")";
                 break;
             case Type::FSD:
-                os << "fsd " << rs1 << ", " << imm << "(" << rs2 << ")";
+                os << "fsd " << rs2 << ", " << imm << "(" << rs1 << ")";
                 break;
             default:
                 throw std::runtime_error("Unknown store instruction type");
@@ -1073,7 +823,7 @@ public:
     Trans(Type type, Register rd, Register rs1)
         : type(type), rd(rd), rs1(rs1) {}
 
-    void get_string(std::ostream& os) {
+    void get_string(std::ostream& os) const{
         switch (type) {
             case Type::FCVT_W_S:
                 os << "fcvt.w.s " << rd << ", " << rs1 << ", rtz";
@@ -1105,7 +855,7 @@ public:
     MulAdd(Type type, Register rd, Register rs1, Register rs2, Register rs3)
         : type(type), rd(rd), rs1(rs1), rs2(rs2), rs3(rs3) {}
 
-    void get_string(std::ostream& os)  {
+    void get_string(std::ostream& os)  const{
         switch (type) {
             case Type::FMADDS:
                 os << "fmadd.s " << rd << ", " << rs1 << ", " << rs2 << ", " << rs3;
@@ -1143,7 +893,7 @@ public:
     MinMax(Type type, Register rd, Register rs1, Register rs2)
         : type(type), rd(rd), rs1(rs1), rs2(rs2) {}
 
-    void get_string(std::ostream& os)  {
+    void get_string(std::ostream& os)  const{
         switch (type) {
             case Type::FMINS:
                 os << "fmin.s " << rd << ", " << rs1 << ", " << rs2;
@@ -1162,9 +912,354 @@ private:
     Register rs1;
     Register rs2;
 };
-std::ostream& operator<<(std::ostream& os, const Shifts& instr) {
-    instr.get_string(os);
-    return os;
-}
-}
 
+// 定义BaseIntInstr 类
+class PseudoInstr {
+public:
+    enum class Type {
+        Nop,    // {} 无操作指令
+        Neg,    // {rd,rs} rs取反存到rd中，使用64为
+        Negw,   // {rd,rs} rs取反存到rd中,截取32位，最后拓展
+
+        // 和0直接比
+        Snez,   // {rd,rs} 如果rs非零，则将1存入寄存器rd中
+        Sltz,   // {rd,rs} 如果rs小于零，则将1存入寄存器rd中
+        Sgtz,   // {rd,rs} 如果rs大于零，则将1存入寄存器rd中
+        Seqz,   // {rd,rs} 如果rs等于零，则将1存入寄存器rd中
+
+        // 有条件跳转
+        /// 和0比
+        Beqz,   // {rd,offset} 如果rs等于零，则根据offset进行分支，pc+offset
+        Bnez,   // {rd,offset} 如果rs不等于零，则根据offset进行分支，pc+offset
+        Blez,   // {rd,offset} 如果rs小于等于零，则根据offset进行分支，pc+offset
+        Bgez,   // {rd,offset} 如果rs大于等于零，则根据offset进行分支，pc+offset
+        Bltz,   // {rd,offset} 如果rs小于零，则根据offset进行分支，pc+offset
+        Bgtz,   // {rd,offset} 如果rs大于零，则根据offset进行分支，pc+offset
+        /// 两两比较
+        Bgt,    // {rs1,rs2,offset} 如果rs1大于rs2的值(有符号数)，则根据offset进行分支 
+        Ble,    // {rs1,rs2,offset} 如果rs1小于rs2的值(有符号数)，则根据offset进行分支
+        Bgtu,   // {rs1,rs2,offset} 如果rs1大于rs2的值(无符号数)，则根据offset进行分支
+        Bleu,   // {rs1,rs2,offset} 如果rs1小于等于rs2的值(无符号数)，则根据offset进行分支
+        
+        // 无条件跳转
+        J,      // {offset} 无条件跳转到指定偏移量
+        Jr,     // {rs} 无条件跳转到寄存器rs指示的地址/返回调用函数
+        Ret,
+        Tail,   // {offset} 用于尾调用优化，跳转到偏移量offset指示的地址
+
+        // //特殊寄存器操作
+        // Rdinstret,  //{rd} 读取特定硬件寄存器（如指令计数器、周期计数器、时间寄存器）的值到寄存器rd中
+        // Rdinstreth,
+        // Rdcycle,
+        // Rdcycleh,
+        // Rdtime,
+        // Rdtimeh,
+
+        //内存访问load
+        Lla,        // {rd,symbol} 加载指定加载局部或相对地址到寄存器rd中
+        La,         // {rd,symbol} 加载全局或绝对地址到寄存器rd中         
+        
+
+        Fmv_s,      // {rd,rs} 单精度浮点移动
+        Fmv_x_w,    // {rd,rs} 单精度浮点移动，带扩展
+        Fabs_s,     // {rd,rs} 单精度取绝对值
+        Fneg_s,     // {rd,rs} 单精度取反
+        Fmv_d,      // {rd,rs} 双精度浮点移动
+        Fabs_d,     // {rd,rs} 双精度取绝对值
+        Fneg_d,     // {rd,rs} 双精度取反
+        
+        Li,         // {rd,imm} 将立即数imm加载到寄存器rd中
+        Mv,         // {rd,rs} 将寄存器rs的值移动到寄存器rd中
+        Not,        // {rd,rs} 将寄存器rs的值位取反存到寄存器rd中
+        Sext_w,     // {rd,rs} 将寄存器rs的值有符号扩展到寄存器rd中
+        
+        Jal,        // {offset}
+        Jalr,       // {rs}
+        Call,       // {offset}
+        Fence       // {}
+    };
+
+    // Nop Ret
+    PseudoInstr(){}
+    // {rd,rs}
+    PseudoInstr(Type type, Register rd, Register rs1)
+        : type(type), rd(rd), rs1(rs1) {}
+    // {rd,imm}
+    PseudoInstr(Type type, Register rd, Imm imm )
+        : type(type), rd(rd),  imm(imm) {}
+    // {rs1,rs2,imm}
+    PseudoInstr(Type type, Register rs1, Register rs2, Imm imm)
+        : type(type), rs1(rs1), rs2(rs2), imm(imm) {}
+    // {imm}
+    PseudoInstr(Type type, Imm imm)
+        : type(type), imm(imm) {}
+    // {rs1}
+    PseudoInstr(Type type, Register rs1)
+        : type(type), rs1(rs1) {}
+
+    // PseudoInstr(Type type, Register rd, Register rs1, Imm imm = Imm::new_literal_isize(0))
+    //     : type(type), rd(rd), rs1(rs1), imm(imm) {}
+
+    void get_string(std::ostream& os) const {
+        switch (type) {
+            case Type::Nop:
+                os << "nop";
+                break;
+            case Type::Neg:
+                os << "neg " << rd << ", " << rs1;
+                break;
+            case Type::Negw:
+                os << "negw " << rd << ", " << rs1;
+                break;
+            case Type::Snez:
+                os << "snez " << rd << ", " << rs1;
+                break;
+            case Type::Sltz:
+                os << "sltz " << rd << ", " << rs1;
+                break;
+            case Type::Sgtz:
+                os << "sgtz " << rd << ", " << rs1;
+                break;
+            case Type::Seqz:
+                os << "seqz " << rd << ", " << rs1;
+                break;
+            case Type::Beqz:
+                os << "beqz " << rs1 << ", " << imm;
+                break;
+            case Type::Bnez:
+                os << "bnez " << rs1 << ", " << imm;
+                break;
+            case Type::Blez:
+                os << "blez " << rs1 << ", " << imm;
+                break;
+            case Type::Bgez:
+                os << "bgez " << rs1 << ", " << imm;
+                break;
+            case Type::Bltz:
+                os << "bltz " << rs1 << ", " << imm;
+                break;
+            case Type::Bgtz:
+                os << "bgtz " << rs1 << ", " << imm;
+                break;
+            case Type::Bgt:
+                os << "bgt " << rs1 << ", " << rd << ", " << imm;
+                break;
+            case Type::Ble:
+                os << "ble " << rs1 << ", " << rd << ", " << imm;
+                break;
+            case Type::Bgtu:
+                os << "bgtu " << rs1 << ", " << rd << ", " << imm;
+                break;
+            case Type::Bleu:
+                os << "bleu " << rs1 << ", " << rd << ", " << imm;
+                break;
+            case Type::J:
+                os << "j " << imm;
+                break;
+            case Type::Jr:
+                os << "jr " << rs1;
+                break;
+            case Type::Ret:
+                os << "ret";
+                break;
+            case Type::Tail:
+                os << "tail " << imm;
+                break;
+            // case Type::Rdinstret:
+            //     os << "rdinstret " << rd;
+            //     break;
+            // case Type::Rdinstreth:
+            //     os << "rdinstreth " << rd;
+            //     break;
+            // case Type::Rdcycle:
+            //     os << "rdcycle " << rd;
+            //     break;
+            // case Type::Rdcycleh:
+            //     os << "rdcycleh " << rd;
+            //     break;
+            // case Type::Rdtime:
+            //     os << "rdtime " << rd;
+            //     break;
+            // case Type::Rdtimeh:
+            //     os << "rdtimeh " << rd;
+            //     break;
+            case Type::Lla:
+                os << "lla " << rd << ", " << imm;
+                break;
+            case Type::La:
+                os << "la " << rd << ", " << imm;
+                break;
+            case Type::Fmv_s:
+                os << "fmv.s " << rd << ", " << rs1;
+                break;
+            case Type::Fmv_x_w:
+                os << "fmv.w.x " << rd << ", " << rs1;
+                break;
+            case Type::Fabs_s:
+                os << "fabs.s " << rd << ", " << rs1;
+                break;
+            case Type::Fneg_s:
+                os << "fneg.s " << rd << ", " << rs1;
+                break;
+            case Type::Fmv_d:
+                os << "fmv.d " << rd << ", " << rs1;
+                break;
+            case Type::Fabs_d:
+                os << "fabs.d " << rd << ", " << rs1;
+                break;
+            case Type::Fneg_d:
+                os << "fneg.d " << rd << ", " << rs1;
+                break;
+            case Type::Li:
+                os << "li " << rd << ", " << imm;
+                break;
+            case Type::Mv:
+                os << "mv " << rd << ", " << rs1;
+                break;
+            case Type::Not:
+                os << "not " << rd << ", " << rs1;
+                break;
+            case Type::Sext_w:
+                os << "sext.w " << rd << ", " << rs1;
+                break;
+            case Type::Jal:
+                os << "jal x1, " << imm;
+                break;
+            case Type::Jalr:
+                os << "jalr x1, " << rs1 << ", 0";
+                break;
+            case Type::Call:
+                os << "call " << imm;
+                break;
+            case Type::Fence:
+                os << "fence iorw, iorw";
+                break;
+        }
+    }
+
+    static PseudoInstr new_reg_mv(const Register& rd, const Register& rs) {
+        if (rd.is_gpr() && rs.is_gpr()) {
+            return PseudoInstr(Type::Mv, rd, rs); // 生成 mv 指令
+        } else if (rd.is_fpr() && rs.is_fpr()) {
+            return PseudoInstr(Type::Fmv_s, rd, rs); // 生成 fmv.s 指令
+        } else if (rd.is_fpr() && rs.is_gpr()) {
+            return PseudoInstr(Type::Fmv_x_w, rd, rs); // 生成 fmv.x.w 指令
+        } else {
+            throw std::runtime_error("Can't move from register " + rs.get_name() + " to " + rd.get_name());
+        }
+    }
+
+private:
+    Type type;
+    Register rd;
+    Register rs1;
+    Register rs2;
+    Imm imm;
+};
+
+using BaseIntInstrVarint=std::variant<
+        Shifts,
+        Arithmetic,
+        Logical,
+        Compare,
+        Branch,
+        JumpAndLink,
+        Environment,
+        CSR,
+        Loads,
+        Stores,
+        Trans,
+        MulAdd,
+        MinMax,
+        PseudoInstr>;
+class RV64Instr{
+public:
+    RV64Instr(BaseIntInstrVarint varint):varint(varint){    }
+    void get_string(std::ostream& os) const{
+        std::visit(Visitor{os},varint);
+    }
+
+private:
+    BaseIntInstrVarint varint;
+
+    // 访问器
+    struct Visitor {
+        std::ostream& os;
+        // Shifts,
+        void operator()(const Shifts& instr) const {
+            instr.get_string(os);
+            os<<std::endl;
+        }
+        // Arithmetic,
+        void operator()(const Arithmetic& instr) const {
+            instr.get_string(os);
+            os<<std::endl;
+        }
+        // Logical,
+        void operator()(const Logical& instr) const {
+            instr.get_string(os);
+            os<<std::endl;
+        }
+        // Compare,
+        void operator()(const Compare& instr) const {
+            instr.get_string(os);
+            os<<std::endl;
+        }
+        // Branch,
+        void operator()(const Branch& instr) const {
+            instr.get_string(os);
+            os<<std::endl;
+        }
+        // JumpAndLink,
+        void operator()(const JumpAndLink& instr) const {
+            instr.get_string(os);
+            os<<std::endl;
+        }
+        // Environment,
+        void operator()(const Environment& instr) const {
+            instr.get_string(os);
+            os<<std::endl;
+        }
+        // CSR,
+        void operator()(const CSR& instr) const {
+            instr.get_string(os);
+            os<<std::endl;
+        }
+        // Loads,
+        void operator()(const Loads& instr) const {
+            instr.get_string(os);
+            os<<std::endl;
+        }
+        // Stores,
+        void operator()(const Stores& instr) const {
+            instr.get_string(os);
+            os<<std::endl;
+        }
+        // Trans,
+        void operator()(const Trans& instr) const {
+            instr.get_string(os);
+            os<<std::endl;
+        }
+        // MulAdd,
+        void operator()(const MulAdd& instr) const {
+            instr.get_string(os);
+            os<<std::endl;
+        }
+        // MinMax>;
+        void operator()(const MinMax& instr) const {
+            instr.get_string(os);
+            os<<std::endl;
+        }
+        // PseudoInstr
+        void operator()(const PseudoInstr& instr) const {
+            instr.get_string(os);
+            os<<std::endl;
+        }
+    };
+
+};
+// std::ostream& operator<<(std::ostream& os, const Shifts& instr) {
+//     instr.get_string(os);
+//     return os;
+// }
+}

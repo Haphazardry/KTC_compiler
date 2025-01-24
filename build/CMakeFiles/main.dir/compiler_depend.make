@@ -231,8 +231,27 @@ CMakeFiles/main.dir/main.cpp.o: ../main.cpp \
   /usr/include/c++/11/tr1/modified_bessel_func.tcc \
   /usr/include/c++/11/tr1/poly_hermite.tcc \
   /usr/include/c++/11/tr1/poly_laguerre.tcc \
-  /usr/include/c++/11/tr1/riemann_zeta.tcc
+  /usr/include/c++/11/tr1/riemann_zeta.tcc \
+  /usr/include/c++/11/variant \
+  /usr/include/c++/11/bits/enable_special_members.h \
+  /usr/include/c++/11/bits/parse_numbers.h \
+  /usr/include/c++/11/sstream \
+  /usr/include/c++/11/bits/sstream.tcc \
+  /usr/include/c++/11/vector \
+  /usr/include/c++/11/bits/stl_vector.h \
+  /usr/include/c++/11/bits/stl_bvector.h \
+  /usr/include/c++/11/bits/vector.tcc
 
+
+/usr/include/c++/11/bits/vector.tcc:
+
+/usr/include/c++/11/bits/stl_bvector.h:
+
+/usr/include/c++/11/sstream:
+
+/usr/include/c++/11/bits/enable_special_members.h:
+
+/usr/include/c++/11/variant:
 
 /usr/include/c++/11/tr1/riemann_zeta.tcc:
 
@@ -258,6 +277,8 @@ CMakeFiles/main.dir/main.cpp.o: ../main.cpp \
 
 /usr/include/math.h:
 
+/usr/include/c++/11/bits/parse_numbers.h:
+
 /usr/include/c++/11/bits/shared_ptr_atomic.h:
 
 /usr/include/c++/11/bits/refwrap.h:
@@ -267,6 +288,8 @@ CMakeFiles/main.dir/main.cpp.o: ../main.cpp \
 /usr/include/c++/11/bits/stl_relops.h:
 
 /usr/include/c++/11/bits/uses_allocator.h:
+
+/usr/include/c++/11/vector:
 
 /usr/include/c++/11/bits/align.h:
 
@@ -307,6 +330,8 @@ CMakeFiles/main.dir/main.cpp.o: ../main.cpp \
 /usr/include/c++/11/stdexcept:
 
 /usr/include/x86_64-linux-gnu/c++/11/bits/error_constants.h:
+
+/usr/include/c++/11/bits/stl_vector.h:
 
 /usr/include/c++/11/system_error:
 
@@ -659,6 +684,8 @@ CMakeFiles/main.dir/main.cpp.o: ../main.cpp \
 /usr/include/c++/11/bits/shared_ptr_base.h:
 
 /usr/include/x86_64-linux-gnu/bits/struct_mutex.h:
+
+/usr/include/c++/11/bits/sstream.tcc:
 
 /usr/lib/gcc/x86_64-linux-gnu/11/include/stddef.h:
 

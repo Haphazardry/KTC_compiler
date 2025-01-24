@@ -47,5 +47,11 @@
         "typeinfo": "cpp"
     },
     "C_Cpp.default.compilerPath": "/usr/bin/gcc",
-    "C_Cpp.errorSquiggles": "enabled"
+    "C_Cpp.errorSquiggles": "enabled",
+    "sarif-viewer.connectToGithubCodeScanning": "off",
+    "editor.suggest.snippetsPreventQuickSuggestions": false,
+    "editor.quickSuggestions": {
+        "comments": "on",
+        "strings": "on"
+    }
 }
