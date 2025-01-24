@@ -1,3 +1,0 @@
-/home/gululu/KTC_compiler/build/CMakeFiles/main.dir
-/home/gululu/KTC_compiler/build/CMakeFiles/edit_cache.dir
-/home/gululu/KTC_compiler/build/CMakeFiles/rebuild_cache.dir
