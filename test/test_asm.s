@@ -1,6 +1,13 @@
 	.file	"test_asm.c"
 	.option pic
 	.text
+	.globl	b
+	.data
+	.align	2
+	.type	b, @object
+	.size	b, 4
+b:
+	.word	10
 	.section	.rodata
 	.align	3
 .LC0:
