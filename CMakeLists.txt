@@ -11,6 +11,9 @@ set(CMAKE_BUILD_TYPE "Debug")
 include_directories(include)
 #添加可执行文件（CMakeList.txt 必选）
 file(GLOB SRC_FILES "src/*.cpp") #GLOB参数表示使用通配符匹配文件 存到指定变量中
+file(GLOB TEST_FILES "test/*.cpp")
+add_executable(test TEST_FILES)
 add_executable(main main.cpp ${SRC_FILES})
 target_include_directories(main PRIVATE "./include")
+target_include_directories(test PRIVATE "./include")
 

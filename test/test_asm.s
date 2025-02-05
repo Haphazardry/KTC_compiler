@@ -1,7 +1,7 @@
 	.file	"test_asm.c"
 	.option pic
 	.text
-	.globl	b
+		.globl	b
 	.data
 	.align	2
 	.type	b, @object

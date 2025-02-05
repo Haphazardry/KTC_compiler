@@ -10,7 +10,8 @@
                 "_DEBUG",
                 "UNICODE",
                 "_UNICODE"
-            ]
+            ],
+            "intelliSenseMode": "${default}"
         }
     ],
     "version": 4
