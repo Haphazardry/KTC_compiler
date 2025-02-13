@@ -23,4 +23,5 @@ include_directories("../include")  # 或者 target_include_directories(ktc_test 
 add_executable(ktc_test "./src/test_asm_struct.cpp")
 
 # 设定 include 目录（如果 include 仅用于 ktc_test，可以用 target_include_directories）
-target_include_directories(ktc_test PRIVATE "../include")
+#target_include_directories(ktc_test PRIVATE "../include")
+target_include_directories(ktc_test PRIVATE "${CMAKE_SOURCE_DIR}/include")
