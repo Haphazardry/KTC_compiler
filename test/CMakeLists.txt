@@ -13,15 +13,21 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
-# 指定头文件目录
-include_directories("../include")  # 或者 target_include_directories(ktc_test PRIVATE ../include)
+# 查找 test/src 目录中的所有 .cpp 文件
+file(GLOB SRC_FILES "${CMAKE_SOURCE_DIR}/test/src/*.cpp")
 
-# 查找所有 .cpp 源文件
-#file(GLOB SRC_FILES "*.cpp")  # 这里的路径可以根据项目结构调整，如 src/*.cpp
+# 输出调试信息，确认查找到的文件
+message(STATUS "Found source files: ${SRC_FILES}")
 
-# 生成可执行文件
-add_executable(ktc_test "./src/test_asm_struct.cpp")
+# 为每个 .cpp 文件生成一个单独的可执行文件
+foreach(SRC_FILE ${SRC_FILES})
+    message(STATUS "Creating executable for: ${SRC_FILE}")
+    # 获取文件名（不带路径和扩展名）
+    get_filename_component(EXEC_NAME ${SRC_FILE} NAME_WE)
 
-# 设定 include 目录（如果 include 仅用于 ktc_test，可以用 target_include_directories）
-#target_include_directories(ktc_test PRIVATE "../include")
-target_include_directories(ktc_test PRIVATE "${CMAKE_SOURCE_DIR}/include")
+    # 为每个 .cpp 文件生成一个单独的可执行文件
+    add_executable(${EXEC_NAME} ${SRC_FILE})
+
+    # 设置 include 目录
+    target_include_directories(${EXEC_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/include")
+endforeach()

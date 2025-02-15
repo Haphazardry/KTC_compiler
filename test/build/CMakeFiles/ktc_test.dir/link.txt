@@ -1,1 +1,0 @@
-/usr/bin/c++ -g CMakeFiles/ktc_test.dir/src/test_asm_struct.cpp.o -o ktc_test 

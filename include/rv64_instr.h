@@ -1,12 +1,13 @@
+#pragma  once
 #include <iostream>
 #include <string>
 #include <memory>
 #include <stdexcept>
 #include <cmath>
 #include <variant>
+#include <vector>
 namespace KTC{
-using RcSymIdx = std::shared_ptr<std::string>; // SymIdx是一个int类型的共享指针?
-//using SymIdx = int;
+using SymIdx = std::shared_ptr<std::string>; // SymIdx是一个int类型的共享指针?
 
     // 定义Imm类
 class Imm {
@@ -17,17 +18,17 @@ public:
         Literal
     };
     Imm(){}
-    Imm(Type type, RcSymIdx symidx) : type(type), symidx(symidx) {}
+    Imm(Type type, SymIdx symidx) : type(type), symidx(symidx) {}
 
-    static Imm new_local_label(RcSymIdx label) {
+    static Imm new_local_label(SymIdx label) {
         return Imm(Type::LocalLabel, label);
     }
 
-    static Imm new_global_label(RcSymIdx label) {
+    static Imm new_global_label(SymIdx label) {
         return Imm(Type::GlobalLabel, label);
     }
 
-    static Imm new_literal(RcSymIdx symidx) {
+    static Imm new_literal(SymIdx symidx) {
         return Imm(Type::Literal, symidx);
     }
 
@@ -46,7 +47,7 @@ public:
 
 private:
     Type type;
-    RcSymIdx symidx;
+    SymIdx symidx;
 };
 
 std::ostream& operator<<(std::ostream& os, const Imm& imm) {
@@ -63,7 +64,16 @@ std::ostream& operator<<(std::ostream& os, const Imm& imm) {
     }
     return os;
 }
-
+// Temp 寄存器：t0 到 t6，一共7个
+constexpr int NUM_TEMP   = 7;    
+// Saved 寄存器：s0 到 s11，一共12个
+constexpr int NUM_SAVED  = 12;   
+// Arg 寄存器：a0 到 a7，一共8个
+constexpr int NUM_ARG    = 8;    
+// FArg 寄存器：fa0 到 fa7，一共8个
+constexpr int NUM_FARG   = 8;   
+// FSaved 寄存器：f0 到 f9 (10个) 加上 f18 到 f31 (14个) 一共24个
+constexpr int NUM_FSAVED = 24;
 class Register {
 public:
     enum class Type {
@@ -166,7 +176,11 @@ public:
             }
     }
     friend std::ostream& operator<<(std::ostream& os, const Register& reg);
-
+    friend struct std::hash<Register>;
+    // 重载 operator==
+    bool operator==(const Register& other) const {
+        return type == other.type && reg_idx == other.reg_idx;
+    }
 private:
     Type type;
     int reg_idx;
