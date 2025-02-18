@@ -1,7 +1,10 @@
 #pragma  once
 #include <unordered_map>
-#include "rv64_instr.h"
 #include <algorithm>
+
+#include "log.h"
+#include "rv64_instr.h"
+#include "asm_struct.h"
 //寄存器哈希函数定义
 namespace std {
     using KTC::Register;
@@ -17,10 +20,12 @@ namespace std {
 
 // 定义寄存器枚举
 namespace KTC{
-    using SymIdx = std::shared_ptr<std::string>;
-    
     // 追踪寄存器状态的枚举
-    enum class RegStateType{ Occupied, Freed, Released };
+    enum class RegStateType{ 
+        Occupied,//占用
+        Freed, //使用时需条件（）
+        Released 
+    };
     // RegState 结构体
     struct RegState {
         RegStateType state;
@@ -52,80 +57,88 @@ namespace KTC{
             }
             throw std::runtime_error("Cannot free a non-occupied register");
         }
+    
+        friend std::ostream& operator<<(std::ostream& os, const RegState& RegState);
+        
     };
+    std::ostream& operator<<(std::ostream& os, const RegState& RegState){
+        os<< "这里是regstate流入符号的重载";
+        return os;
+    }
     // RegTab 结构体
     class RegTab {
         private:
             std::unordered_map<Register, RegState > reg_symidx_map;
-            std::vector<Register> gpr_released_regs;//存指针性能更好，但需要调整find
-            std::vector<Register> fpr_released_regs;
+            size_t gpr_released_reg_count;
+            size_t fpr_released_reg_count;
         
         public:
-            RegTab() {
+            RegTab():gpr_released_reg_count(NUM_ARG+NUM_TEMP+NUM_SAVED),fpr_released_reg_count(NUM_FARG+NUM_FSAVED) {
                 for (int i = 0; i < NUM_ARG; i++) {
                     Register reg = Register::new_a(i);
                     reg_symidx_map[reg] = RegState::new_released();
-                    gpr_released_regs.push_back(reg);
                 }
                 // T 寄存器（临时寄存器），数量：NUM_T
                 for (int i = 0; i < NUM_TEMP; i++) {
                     Register reg = Register::new_t(i);
                     reg_symidx_map[reg] = RegState::new_released();
-                    gpr_released_regs.push_back(reg);
-                }
-                // S 寄存器（保存寄存器）：s0 单独处理，再 s1 到 s(NUM_S-1)
-                {
-                    Register reg = Register::new_s0();
-                    reg_symidx_map[reg] = RegState::new_released();
-                    gpr_released_regs.push_back(reg);
+
                 }
                 for (int i = 1; i < NUM_SAVED; i++) {
                     Register reg = Register::new_s(i);
                     reg_symidx_map[reg] = RegState::new_released();
-                    gpr_released_regs.push_back(reg);
+
                 }
                 // 初始化 FPR 寄存器：FArg 和 FSaved
                 // FA 寄存器（浮点参数寄存器），数量：NUM_FA
                 for (int i = 0; i < NUM_FARG; i++) {
                     Register reg = Register::new_fa(i);
                     reg_symidx_map[reg] = RegState::new_released();
-                    fpr_released_regs.push_back(reg);
+
                 }
                 // FS 寄存器（浮点保存寄存器），数量：NUM_FS
                 for (int i = 0; i < NUM_FSAVED; i++) {
                     Register reg = Register::new_fs(i);
                     reg_symidx_map[reg] = RegState::new_released();
-                    fpr_released_regs.push_back(reg);
+
                 }
+
             }
             // 占用寄存器：将寄存器状态置为 Occupied，并从 available vector 中移除
-            bool occupy_reg(Register reg, SymIdx symidx, bool tracked) {
+            void occupy_reg(Register reg, SymIdx symidx, bool tracked,SymTab& symtab,AsmSection& asmsection) {
                 auto it = reg_symidx_map.find(reg);
-                if (it == reg_symidx_map.end())
-                    throw std::runtime_error("Illegal register access");
-
+                ASSERT_LOG(it != reg_symidx_map.end(),"Illegal register access");
                 RegState& regstat = it->second;
-                if (regstat.state == RegStateType::Released) {
+                switch (regstat.state)
+                {
+                case RegStateType::Released:
                     regstat = RegState::new_occupied(symidx, tracked, 1);
-                    // 根据寄存器类型，从对应的容器中移除该寄存器
                     if (reg.is_gpr()) {
-                        auto pos = std::find(gpr_released_regs.begin(), gpr_released_regs.end(), reg);
-                        if (pos != gpr_released_regs.end()) {
-                            gpr_released_regs.erase(pos);
-                        }
-                    } else {
-                        auto pos = std::find(fpr_released_regs.begin(), fpr_released_regs.end(), reg);
-                        if (pos != fpr_released_regs.end()) {
-                            fpr_released_regs.erase(pos);
-                        }
+                        gpr_released_reg_count-=1;
+                    } 
+                    else {
+                        fpr_released_reg_count-=1;
                     }
-                    return true;
+                    if (tracked){
+                        symtab.get(symidx).add_cur_reg(reg); 
+                    }
+                    break;
+                case RegStateType::Occupied:
+                    ASSERT_LOG(
+                        !(regstat.symidx != symidx || regstat.tracked!= tracked),
+                        "you can't occupy " << regstat << " by " << symidx << " is_temp: " << tracked);
+                    regstat.occupy_count+=1;
+                    break;
+                case RegStateType::Freed:
+                    ASSERT_LOG(!(regstat.symidx != symidx || regstat.tracked!= tracked),"you can't occupy " << regstat );
+                    regstat = RegState::new_occupied(symidx, tracked, 1);
+                    break;
                 }
-                return false;
+
             }
 
             // 查找一个可用的寄存器并占用
-            Register find_and_anonymous_occupy(SymIdx symidx) {
+            Register find_and_anonymous_occupy(SymIdx symidx,SymTab& symtab,AsmSection& asmsection) {
                 // 先从 GPR 中查找
                 if (!gpr_released_regs.empty()) {
                     Register reg = gpr_released_regs.back();

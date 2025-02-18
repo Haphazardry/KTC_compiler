@@ -2,6 +2,7 @@
 #include <memory>
 #include <unordered_map>
 #include "symtab.h"
+#include "rv64_instr.h"
 //待实现的value、type
 struct Value {
     int val;
@@ -43,7 +44,7 @@ namespace KTC{
         public:
             std::unordered_map<Value, Type> fields; // 符号字段
             std::shared_ptr<SymIdx> rc_symidx; // 共享的 SymIdx
-        
+            std::optional<Register> cur_reg;
             Symbol(uint32_t scope, const std::string& name, std::optional<uint32_t> ssa = std::nullopt)
                 : rc_symidx(SymIdx::new_verbose(scope, name, ssa)) {}
         
@@ -57,6 +58,9 @@ namespace KTC{
         
             static Symbol new_from_symidx(const std::shared_ptr<SymIdx>& symidx) {
                 return Symbol(symidx->scope_node, symidx->symbol_name, symidx->index_ssa);
+            }
+            void add_cur_reg(Register& reg) {
+                cur_reg=reg;
             }
             friend std::ostream& operator<<(std::ostream& os, const Symbol& symbol);
         

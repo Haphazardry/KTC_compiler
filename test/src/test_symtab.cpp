@@ -6,12 +6,8 @@ int main() {
     symtab.add_symbol(Symbol(1, "y", 3));
     symtab.add_symbol(Symbol(2, "z"));
 
-    auto sym = symtab.get_symbol(SymIdx(1, "y", 3));
-    if (sym) {
-        std::cout << "Found symbol: " << sym<< "\n";
-    } else {
-        std::cout << "Symbol not found.\n";
-    }
+    auto sym = symtab.get(SymIdx(1, "y", 3));
+    std::cout << "Found symbol: " << sym<< "\n";
 
     return 0;
 }

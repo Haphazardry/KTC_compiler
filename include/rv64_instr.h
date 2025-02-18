@@ -6,8 +6,9 @@
 #include <cmath>
 #include <variant>
 #include <vector>
+#include "symtab.h"
 namespace KTC{
-using SymIdx = std::shared_ptr<std::string>; // SymIdx是一个int类型的共享指针?
+//using SymIdx = std::shared_ptr<std::string>; // SymIdx是一个int类型的共享指针?
 
     // 定义Imm类
 class Imm {
@@ -32,16 +33,16 @@ public:
         return Imm(Type::Literal, symidx);
     }
 
-    static Imm new_literal_isize(int li) {
-        return Imm(Type::Literal, std::make_shared<std::string>(std::to_string(li)));
-    }
+    // static Imm new_literal_isize(int li) {
+    //     return Imm(Type::Literal, std::make_shared<std::string>(std::to_string(li)));
+    // }
 
-    static Imm from_offset(int offset) {
-        if (offset < -2048 || offset > 2047) {  // 12位立即数
-            throw std::runtime_error("you can't use an offset from");
-        }
-        return Imm(Type::Literal, std::make_shared<std::string>(std::to_string(offset)));   //int类型的共享指针
-    }
+    // static Imm from_offset(int offset) {
+    //     if (offset < -2048 || offset > 2047) {  // 12位立即数
+    //         throw std::runtime_error("you can't use an offset from");
+    //     }
+    //     return Imm(Type::Literal, std::make_shared<std::string>(std::to_string(offset)));   //int类型的共享指针
+    // }
 
     friend std::ostream& operator<<(std::ostream& os, const Imm& imm);
 
@@ -53,13 +54,13 @@ private:
 std::ostream& operator<<(std::ostream& os, const Imm& imm) {
     switch (imm.type) {
         case Imm::Type::GlobalLabel:
-            os << *imm.symidx ;
+            os << imm.symidx.symbol_name ;
             break;
         case Imm::Type::LocalLabel:
-            os << *imm.symidx ;
+            os << imm.symidx.symbol_name ;
             break;
         case Imm::Type::Literal:
-            os << *imm.symidx ;
+            os << imm.symidx.symbol_name ;
             break;
     }
     return os;
