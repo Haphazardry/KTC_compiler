@@ -6,7 +6,8 @@ int main() {
     
     // 创建一个汇编代码段
     AsmSection text_section(".text");
-    SymIdx label=std::make_shared<std::string>(".main");
+    // SymIdx label=std::make_shared<std::string>(".main");
+    SymIdx label=SymIdx(0,".main");
     // 添加全局标签
     Imm global_label = Imm::new_global_label(label);
     text_section.addGlobal(global_label);
