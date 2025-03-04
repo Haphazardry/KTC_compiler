@@ -1,3 +1,4 @@
+#pragma once
 #include "CVisitor.h"
 #include "regtab.h"
 #include <any>
