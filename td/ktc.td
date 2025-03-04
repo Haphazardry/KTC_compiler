@@ -4,14 +4,14 @@ class GloblStruct<dag f=(ListOp ), string _fmt=""> {
     string fmt = _fmt;
     code cppcode = [{}];
 }
-// "fmt" ÓÃÓÚÉú³Éµ÷ÊÔĞÅÏ¢
-// a, b  " xxx $a $b  "  ==> xxx a.str  b.str  Êä³öµ½¿ØÖÆÌ¨,oss
+// "fmt" ç”¨äºç”Ÿæˆè°ƒè¯•ä¿¡æ¯
+// a, b  " xxx $a $b  "  ==> xxx a.str  b.str  è¾“å‡ºåˆ°æ§åˆ¶å°,oss
 class VariantMember<dag f=(ListOp), string fmt=""> : GloblStruct<f,fmt>{}
 
-// ¶şÔªÔËËã·û
+// äºŒå…ƒè¿ç®—ç¬¦
 class BinaryOp : VariantMember<(ListOp "RcSymIdx" : $Lhs, "RcSymIdx" : $Rhs, "Type" : $VarType)>{}
 
-// ¶¨ÒåÒ»¸öÍ¨ÓÃµÄ Variant Àà
+// å®šä¹‰ä¸€ä¸ªé€šç”¨çš„ Variant ç±»
 
 // class Variant<dag records> {
 //     dag variant_records = records;
@@ -21,8 +21,8 @@ class Variant<list<VariantMember> lvm>{
     list<VariantMember> members = lvm;
 }
 
-// ¶¨ÒåÃ¶¾ÙÀà
-//´ø×¢ÊÍ
+// å®šä¹‰æšä¸¾ç±»
+//å¸¦æ³¨é‡Š
 class EnumMember<string name, string comment = ""> {
     string Name = name;
     string Comment = comment;
@@ -31,28 +31,28 @@ class Enumeration {
     list<EnumMember> values = [];
 }
 
-// //²»´ø×¢ÊÍ
+// //ä¸å¸¦æ³¨é‡Š
 // class Enumeration {
-//     list<string> values = []; // Ã¶¾ÙÖµÁĞ±í
+//     list<string> values = []; // æšä¸¾å€¼åˆ—è¡¨
 // }
 
 
 def SymIdx : GloblStruct<(ListOp "int":$Value )>{}
 
-// ¶¨Òå RcSymIdx ½á¹¹Ìå
-// Rc<RefCell<SymIdx>> µÄ C++ µÈ¼ÛÎïÊÇ std::shared_ptr<std::unique_ptr<SymIdx>>
-// ÕâÀïÎÒÃÇÖ±½ÓÊ¹ÓÃ std::shared_ptr<SymIdx> À´¼ò»¯
+// å®šä¹‰ RcSymIdx ç»“æ„ä½“
+// Rc<RefCell<SymIdx>> çš„ C++ ç­‰ä»·ç‰©æ˜¯ std::shared_ptr<std::unique_ptr<SymIdx>>
+// è¿™é‡Œæˆ‘ä»¬ç›´æ¥ä½¿ç”¨ std::shared_ptr<SymIdx> æ¥ç®€åŒ–
 def RcSymIdx : GloblStruct<(ListOp "std::shared_ptr<SymIdx>" : $RcSymIdx) > {}
 
-// cppcode ¸ºÔğĞ´º¯Êı
-// fields ¸ºÔğ¶¨ÒåÀàĞÍ×Ö¶Î
+// cppcode è´Ÿè´£å†™å‡½æ•°
+// fields è´Ÿè´£å®šä¹‰ç±»å‹å­—æ®µ
 
 def BBLabel : VariantMember<(ListOp "RcSymIdx" : $LabelSymidx), "BBlabel : $LabelSymidx">{}
 def DefineFunc : VariantMember<(ListOp "RcSymIdx" : $func_symidx, "RcSymIdx" : $ret_symidx, "std::vector<RcSymIdx>" : $args ),
                                 "DefineFunc : $func_symidx, $ret_symidx, $args">{}
 
 
-/// ¿ªÊ¼¶¨ÒåType
+/// å¼€å§‹å®šä¹‰Type
 def I32 : VariantMember<>;
 def F32 : VariantMember<>;
 def I1 : VariantMember<>;
@@ -67,11 +67,11 @@ def Fn : VariantMember<(ListOp "std::vector<RcSymIdx>" : $ArgSyms,
                         "RcSymIdx" : $RetSym) , "Fn : $ArgSyms, $RetSym">{}
 // def Type : Variant<(ListOp I32, F32, I1, Void, Label, Ref, Ptr64, Array, Fn, Unknown)>;
 def Type : Variant<[I32, F32, I1, Void, Label, Ref, Ptr64, Array, Fn, Unknown]>{
-    // ????ÊÇ·ñĞèÒª
+    // ????æ˜¯å¦éœ€è¦
     // dag fields = (ListOp "")
 }
 
-/// ¶¨ÒåType½áÊø
+/// å®šä¹‰Typeç»“æŸ
 
 def DefineVar : VariantMember<>{ }
 
@@ -97,8 +97,8 @@ def SGE : EnumMember<"SGE", "Signed greater than or equal">;
 def SLT : EnumMember<"SLT", "Signed less than">;
 def SLE : EnumMember<"SLE", "Signed less than or equal">;
 
-// ArithOp¶¨Òå¿ªÊ¼
-// ÓĞ×¢ÊÍ
+// ArithOpå®šä¹‰å¼€å§‹
+// æœ‰æ³¨é‡Š
 def IcmpPlan : Enumeration {
     list<EnumMember> values = [
         EQ,
@@ -119,9 +119,9 @@ def OGT : EnumMember<"OGT", "Ordered and greater than">;
 def OGE : EnumMember<"OGE", "Ordered and greater than or equal">;
 def OLT : EnumMember<"OLT", "Ordered and less than">;
 def OLE : EnumMember<"OLE", "Ordered and less than or equal">;
-// ArithOp¶¨Òå½áÊø
+// ArithOpå®šä¹‰ç»“æŸ
 
-// FcmpPlan¶¨Òå¿ªÊ¼
+// FcmpPlanå®šä¹‰å¼€å§‹
 def FcmpPlan : Enumeration {
     list<EnumMember> values = [
         OEQ,
@@ -133,7 +133,7 @@ def FcmpPlan : Enumeration {
     ];
 }
 
-// // ÎŞ×¢ÊÍ
+// // æ— æ³¨é‡Š
 // def IcmpPlan : Enumeration{
 //     list<string> values = ["Eq","Ne","Ugt","Uge","Ult","Ule","Sgt","Sge","Slt","Sle"];
 // }
@@ -166,7 +166,7 @@ def ArithOp: Variant<[Add, Mul, Sub, Div, Mod, Icmp, Fcmp, LogicAnd, LogicOr, Lo
 def Arith : VariantMember<(ListOp "RcSymIdx" : $Lhs, "ArithOp" : $Rhs), 
                             "Arith : $Lhs , $Rhs">{ }
 def SimpleAssign : BinaryOp;
-// FunOp¶¨Òå
+// FunOpå®šä¹‰
 def FuncOp : VariantMember<(ListOp "RcSymIdx" : $RcFuncSymIdx,
                         "std::vector<RcSymIdx>" : $ActualArgSymIdxVec,
                         "Type" : $RetType),
@@ -174,8 +174,8 @@ def FuncOp : VariantMember<(ListOp "RcSymIdx" : $RcFuncSymIdx,
 def Call  : VariantMember<(ListOp "std::optional<RcSymIdx>" : $OpLhs,
                         "FuncOp" : $Runc),
                         "Call : $OpLhs, $Runc">{ }
-// FuncOp¶¨Òå½áÊø
-// JumOp¶¨Òå
+// FuncOpå®šä¹‰ç»“æŸ
+// JumOpå®šä¹‰
 def Ret : VariantMember<(ListOp "std::optional<RcSymIdx>" : $OpRetSym),
                         "Ret : $OpRetSym"> { }
 
@@ -193,16 +193,16 @@ def Switch  : VariantMember<(ListOp "RcSymIdx" : $Cond,
 def DirectJump : VariantMember<(ListOp "RcSymIdx" : $LabelSymIdx),
                                 "DirectJump : $LabelSymIdx"> { }
 def JumpOp : Variant<[Ret, Br, Switch, DirectJump]>;
-/// JumpOp¶¨Òå½áÊø
+/// JumpOpå®šä¹‰ç»“æŸ
 
 def Jump : VariantMember<(ListOp "std::optional<RcSymIdx>" : $OpLhs,
                         "JumpOp" : $Runc),
                         "Jump : $OpLhs, $Runc"> { }
-// PhiPair¶¨Òå
+// PhiPairå®šä¹‰
 def PhiPair : GloblStruct<(ListOp "RcSymIdx" : $SymIdx,
                                 "int" : $DefInstr,
                                 "int" : $CommingCfgNode)>{}
-// PhiOp¶¨Òå
+// PhiOpå®šä¹‰
 def PhiOp : GloblStruct<(ListOp "std::vector<PhiPair>" : $PhiPairs)> { }
 
 def Phi : VariantMember<(ListOp "RcSymIdx" : $Lhs,
@@ -221,7 +221,7 @@ def Chi : VariantMember<(ListOp "RcSymIdx" : $Lhs,
 def Untrack : VariantMember<(ListOp "RcSymIdx" : $SymIdx),
                             "Untrack : $SymIdx"> { }
 
-// Trans¶¨Òå
+// Transå®šä¹‰
 def Fptosi : VariantMember<(ListOp "RcSymIdx" : $FloatSymIdx),
                             "Fptosi : $FloatSymIdx"> { }
 
@@ -242,7 +242,7 @@ def TranType : VariantMember<(ListOp "RcSymIdx" : $Lhs,
                         "Trans" : $Op),
                         "TranType : $Lhs, $Op"> { }
 
-// Breakpoint¶¨Òå
+// Breakpointå®šä¹‰
 def BreakPointArg : GloblStruct<(ListOp "RcSymIdx" : $SymIdx,
         "std::optional<std::string>" : $OpFieldName)> { }
 
@@ -255,7 +255,3 @@ def Nope : VariantMember<> { }
 def KtcInst : Variant<[BBLabel , DefineVar , DefineFunc, Alloc, Globl, Load, Store,
                               GetElementPtr, Arith, SimpleAssign, Call, Jump, Phi, Mu, Chi, Untrack, TranType,
                               BreakPoint, Nope]>;
-
-
-// getstring º¯Êı¶¨Òå
-def get_string()

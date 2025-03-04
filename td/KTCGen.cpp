@@ -13,47 +13,47 @@
 const static auto variantDeclStr = "using {0}=std::variant<{1}>;\n";
 const static auto defDeclStr = "class {0}{\n{1}};\n\n";
 namespace llvm {
-void EmitKTCDecls(const RecordKeeper &records, raw_ostream &os) {
+void EmitKTCDecls(RecordKeeper &records, raw_ostream &os) {
     emitSourceFileHeader("KTC Declarations", os, records);
 
-    // ÎÄ¼þÍ·£¬°üº¬±ØÒªµÄ¿â
+    // ï¿½Ä¼ï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½Ä¿ï¿½
     os << "#include <optional>\n";
     os << "#include <variant>\n";
     os << "#include <vector>\n";
     // os << "#include ";
     os << "#include <memory>\n\n";
 
-    // ´¦Àí GloblStruct ºÍ VariantMember
+    // ï¿½ï¿½ï¿½ï¿½ GloblStruct ï¿½ï¿½ VariantMember
     const auto &defs = records.getDefs();
     for (const auto &def : defs) {
-        const std::string &defName = def.first;     // »ñÈ¡ def µÄÃû³Æ
-        const Record *defRecord = def.second.get(); // »ñÈ¡ def µÄ Record ¶ÔÏó
+        const std::string &defName = def.first;     // ï¿½ï¿½È¡ def ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        const Record *defRecord = def.second.get(); // ï¿½ï¿½È¡ def ï¿½ï¿½ Record ï¿½ï¿½ï¿½ï¿½
 
-        // Ìø¹ýÅÉÉú×Ô Enumeration µÄ¼ÇÂ¼
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Enumeration ï¿½Ä¼ï¿½Â¼
         if (defRecord->isSubClassOf("Enumeration")) { continue; }
 
-        // Ìø¹ýÄäÃû¼ÇÂ¼
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â¼
         if (defRecord->isAnonymous()) { continue; }
 
-        // ¼ì²éÊÇ·ñÊÇ GloblStruct »ò VariantMember
+        // ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿? GloblStruct ï¿½ï¿½ VariantMember
         if (defRecord->isSubClassOf("GloblStruct")) {
-            // »ñÈ¡ fields ×Ö¶Î
+            // ï¿½ï¿½È¡ fields ï¿½Ö¶ï¿½
             const DagInit *fields = defRecord->getValueAsDag("fields");
             if (!fields) {
                 os << "// Error: No fields found for " << defName << "\n";
                 continue;
             }
 
-            // Éú³É½á¹¹Ìå¶¨Òå
+            // ï¿½ï¿½ï¿½É½á¹¹ï¿½å¶¨ï¿½ï¿½
             os << "class " << defName << " {\n";
 
-            // ±éÀú fields µÄÃ¿¸ö²ÎÊý
+            // ï¿½ï¿½ï¿½ï¿½ fields ï¿½ï¿½Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
             for (unsigned i = 0; i < fields->getNumArgs(); ++i) {
                 const Init *arg = fields->getArg(i);
-                std::string argName = fields->getArgNameStr(i).str(); // »ñÈ¡²ÎÊýÀàÐÍ
-                std::string argType = arg->getAsString();      // »ñÈ¡²ÎÊýÃû³Æ
+                std::string argName = fields->getArgNameStr(i).str(); // ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+                std::string argType = arg->getAsString();      // ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
-                // È¥µô argType µÄ¿ªÍ·ºÍ½áÎ²µÄÒýºÅ
+                // È¥ï¿½ï¿½ argType ï¿½Ä¿ï¿½Í·ï¿½Í½ï¿½Î²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
                 if (!argType.empty() && argType.front() == '"' && argType.back() == '"') {
                     argType = argType.substr(1, argType.size() - 2);
                 }
@@ -63,24 +63,24 @@ void EmitKTCDecls(const RecordKeeper &records, raw_ostream &os) {
 
             os << "};\n\n";
 
-            // Éú³Éµ÷ÊÔÐÅÏ¢²¢´òÓ¡µ½ÃüÁîÐÐ
+            // ï¿½ï¿½ï¿½Éµï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½Ó¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
             if (defRecord->getValue("fmt")) {
-                std::string fmt = defRecord->getValueAsString("fmt").str(); // »ñÈ¡ fmt ×Ö¶Î
-                 // Èç¹û fmt ·Ç¿Õ£¬ÔòÉú³Éµ÷ÊÔÐÅÏ¢
+                std::string fmt = defRecord->getValueAsString("fmt").str(); // ï¿½ï¿½È¡ fmt ï¿½Ö¶ï¿½
+                 // ï¿½ï¿½ï¿? fmt ï¿½Ç¿Õ£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Éµï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
                 if (!fmt.empty()) {
                     std::ostringstream oss;
 
-                    // Ìæ»» fmt ÖÐµÄÕ¼Î»·û
+                    // ï¿½æ»» fmt ï¿½Ðµï¿½Õ¼Î»ï¿½ï¿½
                     for (unsigned i = 0; i < fields->getNumArgs(); ++i) {
                         const Init *arg = fields->getArg(i);
                         std::string argName = arg->getAsString();
 
-                        // È¥µô argName µÄ¿ªÍ·ºÍ½áÎ²µÄÒýºÅ
+                        // È¥ï¿½ï¿½ argName ï¿½Ä¿ï¿½Í·ï¿½Í½ï¿½Î²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
                         if (!argName.empty() && argName.front() == '"' && argName.back() == '"') {
                             argName = argName.substr(1, argName.size() - 2);
                         }
 
-                        // Ìæ»»Õ¼Î»·û
+                        // ï¿½æ»»Õ¼Î»ï¿½ï¿½
                         size_t pos = fmt.find("$" + fields->getArgNameStr(i).str());
                         if (pos != std::string::npos) {
                             fmt.replace(pos, fields->getArgNameStr(i).str().length() + 1, argName);
@@ -88,17 +88,17 @@ void EmitKTCDecls(const RecordKeeper &records, raw_ostream &os) {
                     }
 
                     oss << fmt << "\n";
-                    llvm::outs() << "// Debug: " << oss.str(); // ´òÓ¡µ½ÃüÁîÐÐ
+                    llvm::outs() << "// Debug: " << oss.str(); // ï¿½ï¿½Ó¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
                 }
             }
         }
     }
-    // ´¦Àí Variant
+    // ï¿½ï¿½ï¿½ï¿½ Variant
     auto variants = records.getAllDerivedDefinitions("Variant");
     for (const auto *def : variants) {
         std::string variantName = def->getName().str();
 
-        // »ñÈ¡ members ×Ö¶Î
+        // ï¿½ï¿½È¡ members ï¿½Ö¶ï¿½
         const auto *members = def->getValueAsListInit("members");
         if (!members) {
             os << "// Error: No members found for " << variantName << "\n";
@@ -114,27 +114,27 @@ void EmitKTCDecls(const RecordKeeper &records, raw_ostream &os) {
 
         std::string memberList = oss.str();
         if (!memberList.empty()) {
-            memberList.pop_back(); // ÒÆ³ý×îºóÒ»¸ö¶ººÅ
+            memberList.pop_back(); // ï¿½Æ³ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?
         }
 
         os << formatv(variantDeclStr, variantName, memberList);
     }
 
-    // ´¦Àí Enumeration
+    // ï¿½ï¿½ï¿½ï¿½ Enumeration
     const auto &enums = records.getAllDerivedDefinitions("Enumeration");
     for (const auto *enumDef : enums) {
-        std::string enumName = enumDef->getName().str(); // »ñÈ¡Ã¶¾ÙÀàÐÍµÄÃû³Æ
+        std::string enumName = enumDef->getName().str(); // ï¿½ï¿½È¡Ã¶ï¿½ï¿½ï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½ï¿½ï¿½
 
-        // »ñÈ¡Ã¶¾ÙÖµÁÐ±í
+        // ï¿½ï¿½È¡Ã¶ï¿½ï¿½Öµï¿½Ð±ï¿½
         const auto *values = enumDef->getValueAsListInit("values");
         if (!values) {
-            os << "enum class " << enumName << " {};\n\n"; // Èç¹ûÃ¶¾ÙÖµÁÐ±íÎª¿Õ£¬Éú³É¿ÕÃ¶¾Ù
+            os << "enum class " << enumName << " {};\n\n"; // ï¿½ï¿½ï¿½Ã¶ï¿½ï¿½Öµï¿½Ð±ï¿½Î?ï¿½Õ£ï¿½ï¿½ï¿½ï¿½É¿ï¿½Ã¶ï¿½ï¿½
             continue;
         }
 
         os << "enum class " << enumName << " {\n";
 
-        // ±éÀúÃ¶¾ÙÖµ£¨´ø×¢ÊÍ£©
+        // ï¿½ï¿½ï¿½ï¿½Ã¶ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½×¢ï¿½Í£ï¿½
         for (size_t i = 0; i < values->size(); ++i) {
             const auto *value = values->getElement(i);
             if (const auto *defValue = dyn_cast<DefInit>(value)) {
@@ -153,17 +153,17 @@ void EmitKTCDecls(const RecordKeeper &records, raw_ostream &os) {
             }
         }
 
-        os << "\n};\n\n"; // ½áÊøÃ¶¾Ù¶¨Òå
+        os << "\n};\n\n"; // ï¿½ï¿½ï¿½ï¿½Ã¶ï¿½Ù¶ï¿½ï¿½ï¿½
     }
 }
 
 } // namespace llvm
 
-// // ±éÀúÃ¶¾ÙÖµ ÎÞ×¢ÊÍ
+// // ï¿½ï¿½ï¿½ï¿½Ã¶ï¿½ï¿½Öµ ï¿½ï¿½×¢ï¿½ï¿½
     // for (size_t i = 0; i < values->size(); ++i) {
     //     const auto *value = values->getElement(i);
     //     if (const auto *strValue = dyn_cast<StringInit>(value)) {
-    //         // ½« StringRef ×ª»»Îª std::string
+    //         // ï¿½ï¿½ StringRef ×ªï¿½ï¿½Îª std::string
     //         os << "    " << strValue->getValue().str(); 
     //         if (i != values->size() - 1) {
     //             os << ",";
