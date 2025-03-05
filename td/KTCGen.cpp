@@ -13,7 +13,7 @@
 const static auto variantDeclStr = "using {0}=std::variant<{1}>;\n";
 const static auto defDeclStr = "class {0}{\n{1}};\n\n";
 namespace llvm {
-void EmitKTCDecls(const RecordKeeper &records, raw_ostream &os) {
+void EmitKTCDecls(RecordKeeper &records, raw_ostream &os) {
     emitSourceFileHeader("KTC Declarations", os, records);
 
     // 文件头，包含必要的库
@@ -36,7 +36,7 @@ void EmitKTCDecls(const RecordKeeper &records, raw_ostream &os) {
         if (defRecord->isAnonymous()) { continue; }
 
         // 检查是否是 GloblStruct 或 VariantMember
-        if (defRecord->isSubClassOf("GloblStruct")) {
+        if (defRecord->isSubClassOf("Struct")) {
             // 获取 fields 字段
             const DagInit *fields = defRecord->getValueAsDag("fields");
             if (!fields) {

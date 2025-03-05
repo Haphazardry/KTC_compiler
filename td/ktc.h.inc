@@ -268,7 +268,7 @@ class Zext {
 
 using ArithOp=std::variant<Add,Mul,Sub,Div,Mod,Icmp,Fcmp,LogicAnd,LogicOr,LogicNot>;
 using JumpOp=std::variant<Ret,Br,Switch,DirectJump>;
-using KtcInst=std::variant<BBLabel,DefineVar,DefineFunc,Alloc,Globl,Load,Store,GetElementPtr,Arith,SimpleAssign,Call,Jump,Phi,Mu,Chi,Untrack,TranType,BreakPoint,Nope>;
+using KtcInst=std::variant<BBLabel,DefineVar,DefineFunc,Alloc,Store,GetElementPtr,Arith,SimpleAssign,Call,Jump,Phi,Mu,Chi,Untrack,TranType,BreakPoint,Nope>;
 using Trans=std::variant<Fptosi,SitoFp,Zext,Bitcast>;
 using Type=std::variant<I32,F32,I1,Void,Label,Ref,Ptr64,Array,Fn,Unknown>;
 enum class FcmpPlan {

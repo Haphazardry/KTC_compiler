@@ -1,13 +1,8 @@
-def ListOp;
-class GloblStruct<dag f=(ListOp ), string _fmt=""> {
-    dag fields = f;
-    string fmt = _fmt;
-    code cppcode = [{}];
-}
-// "fmt" 用于生成调试信息
-// a, b  " xxx $a $b  "  ==> xxx a.str  b.str  输出到控制台,oss
-class VariantMember<dag f=(ListOp), string fmt=""> : GloblStruct<f,fmt>{}
-
+include "base.td"
+// //不带注释
+// class Enumeration {
+//     list<string> values = []; // 枚举值列表
+// }
 // 二元运算符
 class BinaryOp : VariantMember<(ListOp "RcSymIdx" : $Lhs, "RcSymIdx" : $Rhs, "Type" : $VarType)>{}
 
@@ -17,32 +12,13 @@ class BinaryOp : VariantMember<(ListOp "RcSymIdx" : $Lhs, "RcSymIdx" : $Rhs, "Ty
 //     dag variant_records = records;
 // }
 
-class Variant<list<VariantMember> lvm>{
-    list<VariantMember> members = lvm;
-}
 
-// 定义枚举类
-//带注释
-class EnumMember<string name, string comment = ""> {
-    string Name = name;
-    string Comment = comment;
-}
-class Enumeration {
-    list<EnumMember> values = [];
-}
-
-// //不带注释
-// class Enumeration {
-//     list<string> values = []; // 枚举值列表
-// }
-
-
-def SymIdx : GloblStruct<(ListOp "int":$Value )>{}
+def SymIdx : Struct<(ListOp "int":$Value )>{}
 
 // 定义 RcSymIdx 结构体
 // Rc<RefCell<SymIdx>> 的 C++ 等价物是 std::shared_ptr<std::unique_ptr<SymIdx>>
 // 这里我们直接使用 std::shared_ptr<SymIdx> 来简化
-def RcSymIdx : GloblStruct<(ListOp "std::shared_ptr<SymIdx>" : $RcSymIdx) > {}
+def RcSymIdx : Struct<(ListOp "std::shared_ptr<SymIdx>" : $RcSymIdx) > {}
 
 // cppcode 负责写函数
 // fields 负责定义类型字段
@@ -141,7 +117,6 @@ def FcmpPlan : Enumeration {
 //     list<string> values = ["Oeq","One","Ogt","Oge","Olt","Ole"];
 // }
 
-
 def Add : BinaryOp;
 def Mul : BinaryOp;
 def Sub : BinaryOp;
@@ -183,7 +158,7 @@ def Br : VariantMember<(ListOp "RcSymIdx" : $cond,
                         "RcSymIdx" : $t1,
                         "RcSymIdx" : $t2),
                         "Br : $cond, $t1, $t2"> { }
-def ComparedPair : GloblStruct<(ListOp "RcSymIdx" : $Compared,
+def ComparedPair : Struct<(ListOp "RcSymIdx" : $Compared,
                                 "RcSymIdx" : $Label) ,
                                 "ComparedPair : $Compared , $Label">{}
 def Switch  : VariantMember<(ListOp "RcSymIdx" : $Cond,
@@ -199,11 +174,11 @@ def Jump : VariantMember<(ListOp "std::optional<RcSymIdx>" : $OpLhs,
                         "JumpOp" : $Runc),
                         "Jump : $OpLhs, $Runc"> { }
 // PhiPair定义
-def PhiPair : GloblStruct<(ListOp "RcSymIdx" : $SymIdx,
+def PhiPair : Struct<(ListOp "RcSymIdx" : $SymIdx,
                                 "int" : $DefInstr,
                                 "int" : $CommingCfgNode)>{}
 // PhiOp定义
-def PhiOp : GloblStruct<(ListOp "std::vector<PhiPair>" : $PhiPairs)> { }
+def PhiOp : Struct<(ListOp "std::vector<PhiPair>" : $PhiPairs)> { }
 
 def Phi : VariantMember<(ListOp "RcSymIdx" : $Lhs,
                         "PhiOp" : $Rhs),
@@ -243,7 +218,7 @@ def TranType : VariantMember<(ListOp "RcSymIdx" : $Lhs,
                         "TranType : $Lhs, $Op"> { }
 
 // Breakpoint定义
-def BreakPointArg : GloblStruct<(ListOp "RcSymIdx" : $SymIdx,
+def BreakPointArg : Struct<(ListOp "RcSymIdx" : $SymIdx,
         "std::optional<std::string>" : $OpFieldName)> { }
 
 def BreakPoint : VariantMember<(ListOp "RcSymIdx" : $SymIdx,
@@ -252,6 +227,6 @@ def BreakPoint : VariantMember<(ListOp "RcSymIdx" : $SymIdx,
 
 def Nope : VariantMember<> { }
 
-def KtcInst : Variant<[BBLabel , DefineVar , DefineFunc, Alloc, Globl, Load, Store,
+def KtcInst : Variant<[BBLabel , DefineVar , DefineFunc, Alloc, Store,
                               GetElementPtr, Arith, SimpleAssign, Call, Jump, Phi, Mu, Chi, Untrack, TranType,
                               BreakPoint, Nope]>;
