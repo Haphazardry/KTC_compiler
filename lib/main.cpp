@@ -46,10 +46,12 @@
 // }
 #include <iostream>
 #include <fstream>
+#include "SysYParser.h"
 #include "antlr4-runtime.h"
-#include "CLexer.h"
-#include "CParser.h"
+#include "SysYLexer.h"
+#include "SysYParser.h"
 #include "dot_gen.h"
+#include "rv64_instr.h"
 using namespace std;
 using namespace antlr4;
 
@@ -71,21 +73,23 @@ int main(int argc, const char* argv[]) {
     ANTLRInputStream input(inputFile);
 
     // 创建词法分析器
-    CLexer lexer(&input);
+    SysYLexer lexer(&input);
 
     // 生成令牌流
     CommonTokenStream tokens(&lexer);
 
     // 创建语法分析器
-    CParser parser(&tokens);
+    SysYParser parser(&tokens);
 
     // 解析源代码
-    tree::ParseTree* tree = parser.compilationUnit(); // 假设 'program' 是 C 语法中的入口规则
+    tree::ParseTree* tree = parser.compUnit(); // 假设 'program' 是 C 语法中的入口规则
 
     // 输出解析树（用于调试）`
     cout << "Parse Tree: " << endl;
     cout << tree->toStringTree(&parser) << endl;
-    KTC::MyCVisitor visitor;
-    cout << visitor.oss.str();
+    cout << "My Visitor:";
+    KTC::MyVisitor visitor;
+    visitor.visitTree(tree);
+    std::cout << visitor.oss.str();
     return 0;
 }

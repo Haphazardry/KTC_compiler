@@ -1,5 +1,6 @@
 #pragma  once
 
+#include <cmath>
 #include <vector>
 #include <string>
 #include <memory>
@@ -19,7 +20,7 @@ namespace KTC{
     // using KTC::RcSymIdx;
     // using KTC::Imm;
     // using KTC::RV64Instr;
-    bool ends_with(const std::string& str, const std::string& suffix) {
+    inline bool ends_with(const std::string& str, const std::string& suffix) {
         return str.size() >= suffix.size() && 
             str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
     }
@@ -33,71 +34,79 @@ namespace KTC{
     struct Align {
         size_t align;
         Align(size_t size) : align(size) {}
-    };
-    std::ostream& operator<<(std::ostream& os, const Align& align) {
+
+    friend std::ostream& operator<<(std::ostream& os, const Align& align) {
         return os << "    .align " << align.align;
     }
+    };
     //Global 定义以及输出
     struct Global {
         Imm label;
         Global(Imm imm) : label(imm) {}
+
+        friend std::ostream& operator<<(std::ostream& os, const Global& global) {
+            return os << "    .globl " << global.label;
+        }
     };
-    std::ostream& operator<<(std::ostream& os, const Global& global) {
-        return os << "    .globl " << global.label;
-    }
     struct Double {
         Imm imm;
         Double(Imm imm) : imm(imm) {}
-    };
-    std::ostream& operator<<(std::ostream& os, const Double& dbl) {
+    friend std::ostream& operator<<(std::ostream& os, const Double& dbl) {
         return os << "    .double " << dbl.imm;
     }
+
+    };
     
     struct Word {
         Imm imm;
         Word(Imm imm) : imm(imm) {}
+
+        friend std::ostream& operator<<(std::ostream& os, const Word& word) {
+            return os << "    .word " << word.imm;
+        }
     };
-    std::ostream& operator<<(std::ostream& os, const Word& word) {
-        return os << "    .word " << word.imm;
-    }
     
     struct Half {
         Imm imm;
         Half(Imm imm) : imm(imm) {}
+    
+        friend std::ostream& operator<<(std::ostream& os, const Half& half) {
+            return os << "    .half " << half.imm;
+        }
     };
-    std::ostream& operator<<(std::ostream& os, const Half& half) {
-        return os << "    .half " << half.imm;
-    }
     
     struct Byte {
         Imm imm;
         Byte(Imm imm) : imm(imm) {}
+        friend std::ostream& operator<<(std::ostream& os, const Byte& byte) {
+            return os << "    .byte " << byte.imm;
+        }
+    
     };
-    std::ostream& operator<<(std::ostream& os, const Byte& byte) {
-        return os << "    .byte " << byte.imm;
-    }
     
     struct Zero {
         size_t len;
         Zero(size_t size) : len(size) {}
+    
+        friend std::ostream& operator<<(std::ostream& os, const Zero& zero) {
+            return os << "    .zero " << zero.len;
+        }
     };
-    std::ostream& operator<<(std::ostream& os, const Zero& zero) {
-        return os << "    .zero " << zero.len;
-    }
     
     struct Label {
         Imm imm;
         Label(Imm imm) : imm(imm) {}
+        
+        friend std::ostream& operator<<(std::ostream& os, const Label& label) {
+            return os << label.imm << ":";
+        }
     };
-    std::ostream& operator<<(std::ostream& os, const Label& label) {
-        return os << label.imm << ":";
-    }
 
     enum class DataType {
         Object,
         Function
     };
-    std::ostream& operator <<(std::ostream& os,DataType dt){
+    inline std::ostream& operator <<(std::ostream& os,DataType dt){
         switch (dt)
         {
         case DataType::Object:
@@ -114,24 +123,26 @@ namespace KTC{
         DataType attr_ty;
         Imm imm;
         DataTypeAttr(DataType dt, Imm imm) : attr_ty(dt), imm(imm) {}
-    };
-    std::ostream& operator<<(std::ostream& os, const DataTypeAttr& attr) {
+    friend std::ostream& operator<<(std::ostream& os, const DataTypeAttr& attr) {
         return os << attr.imm << ", " << attr.attr_ty;
     }
+    };
 
     struct Data {
         Data() = default;
-    };
-    std::ostream& operator<<(std::ostream& os, const Data&) {
-        return os << "    .data";
-    }
+        friend std::ostream& operator<<(std::ostream& os, const Data&) {
+            return os << "    .data";
+        }
+     };
+
     
     struct Text {
         Text() = default;
+        friend std::ostream& operator<<(std::ostream& os, const Text&) {
+            return os << "    .text";
+        }
+ 
     };
-    std::ostream& operator<<(std::ostream& os, const Text&) {
-        return os << "    .text";
-    }
 
     // 定义 AsmAttr，表示不同的汇编属性
     // Asm 可能是一个汇编属性（AsmAttr）或 RISC-V 指令（RV64Instr）
@@ -149,7 +160,7 @@ namespace KTC{
         Label,
         DataTypeAttr,
         RV64Instr>;
-        std::ostream& operator<<(std::ostream& os, const Asm& attr) {
+        inline std::ostream& operator<<(std::ostream& os, const Asm& attr) {
             std::visit([&os](auto&& arg) {
                 os << arg;  
             }, attr);

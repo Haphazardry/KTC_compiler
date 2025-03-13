@@ -18,11 +18,10 @@ struct Value {
     bool operator ==(const Value& other) const {
         return val == other.val;
     }
-    friend std::ostream& operator <<(std::ostream& os, const Value& value);
-};
-std::ostream& operator <<(std::ostream& os, const Value& value){
+    friend std::ostream& operator <<(std::ostream& os, const Value& value){
     return os << value.val;
 }
+};
 
 // 为 Value 类型特化 std::hash
 namespace std {
@@ -40,11 +39,11 @@ struct Type {
     std::string data;
     Type() : data("") {}  
     Type(std::string d) : data(d) {}
-    friend std::ostream& operator<<(std::ostream& os ,const Type& type);
-};
-std::ostream& operator<<(std::ostream& os ,const Type& type ){
+    friend std::ostream& operator<<(std::ostream& os ,const Type& type){
     return os<<type.data; 
 }
+
+};
 class TypeDiscriminants {
     public:
         enum Type {
@@ -172,7 +171,7 @@ namespace KTC{
         friend std::ostream& operator <<(std::ostream& os ,const SymIdx& SymIdx);
     };
 
-    std::ostream& operator <<(std::ostream& os ,const SymIdx& symidx){
+    inline std::ostream& operator <<(std::ostream& os ,const SymIdx& symidx){
         if (symidx.index_ssa) {
             os << symidx.symbol_name << "_" << symidx.scope_node << "_" << *symidx.index_ssa;
         } else {
@@ -180,7 +179,7 @@ namespace KTC{
         }
         return os;
     }
-    std::ostream& operator<<(std::ostream& os, const std::optional<SymIdx>& opt_symidx) {
+    inline std::ostream& operator<<(std::ostream& os, const std::optional<SymIdx>& opt_symidx) {
         if (opt_symidx) {  
             os << *opt_symidx;  // 使用 SymIdx 的 << 重载
         } else {
@@ -230,25 +229,25 @@ namespace KTC{
                 //需要，但是不知具体逻辑
                 return true;
             }
-            friend std::ostream& operator<<(std::ostream& os, const Symbol& symbol);
+            friend std::ostream& operator<<(std::ostream& os, const Symbol& symbol){
+                os << "{"
+                << "SymIdx(" << symbol.rc_symidx->scope_node << ", " << symbol.rc_symidx->symbol_name << "), "
+                << "fields: {";
+                
+                for (const auto& field : symbol.fields) {
+                    os << field.first << ": " << field.second << ", ";
+                }
+                os << "}" << "}";
+                
+                return os;
+            }
+
         
         };
     
     // 重载<<运算符
-    std::ostream& operator<<(std::ostream& os, const Symbol& symbol) {
-        os << "{"
-        << "SymIdx(" << symbol.rc_symidx->scope_node << ", " << symbol.rc_symidx->symbol_name << "), "
-        << "fields: {";
-        
-        for (const auto& field : symbol.fields) {
-            os << field.first << ": " << field.second << ", ";
-        }
-        os << "}" << "}";
-        
-        return os;
-    }
     // 重载<<运算符，用于输出std::optional<Symbol>
-    std::ostream& operator<<(std::ostream& os, const std::optional<Symbol>& opt_symbol) {
+   inline std::ostream& operator<<(std::ostream& os, const std::optional<Symbol>& opt_symbol) {
         if (opt_symbol) {
             os << *opt_symbol;  // 如果有值，解引用并输出
         } else {

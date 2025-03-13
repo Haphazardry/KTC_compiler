@@ -31,7 +31,7 @@ namespace KTC{
         Freed, //其他ir复用
         Released //空
     };
-    std::ostream& operator << (std::ostream& os , const RegStateType& type){
+    inline std::ostream& operator << (std::ostream& os , const RegStateType& type){
         switch(type){
             case RegStateType::Occupied: os <<"Occupied"; break;
             case RegStateType::Freed: os <<"Freed";break;

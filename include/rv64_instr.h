@@ -46,14 +46,7 @@ public:
     //     return Imm(Type::Literal, std::make_shared<std::string>(std::to_string(offset)));   //int类型的共享指针
     // }
 
-    friend std::ostream& operator<<(std::ostream& os, const Imm& imm);
-
-private:
-    Type type;
-    SymIdx symidx;
-};
-
-std::ostream& operator<<(std::ostream& os, const Imm& imm) {
+    friend std::ostream& operator<<(std::ostream& os, const Imm& imm){
     switch (imm.type) {
         case Imm::Type::GlobalLabel:
             os << imm.symidx.symbol_name ;
@@ -66,7 +59,29 @@ std::ostream& operator<<(std::ostream& os, const Imm& imm) {
             break;
     }
     return os;
+    
 }
+
+
+private:
+    Type type;
+    SymIdx symidx;
+};
+
+// std::ostream& operator<<(std::ostream& os, const Imm& imm) {
+//     switch (imm.type) {
+//         case Imm::Type::GlobalLabel:
+//             os << imm.symidx.symbol_name ;
+//             break;
+//         case Imm::Type::LocalLabel:
+//             os << imm.symidx.symbol_name ;
+//             break;
+//         case Imm::Type::Literal:
+//             os << imm.symidx.symbol_name ;
+//             break;
+//     }
+//     return os;
+// }
 
 
 // 定义Shifts类
