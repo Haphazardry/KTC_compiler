@@ -137,7 +137,6 @@ public:
   public:
     BTypeContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    ConstExpContext *constExp();
 
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
@@ -317,12 +316,11 @@ public:
     virtual size_t getRuleIndex() const override;
     BTypeContext *bType();
     antlr4::tree::TerminalNode *Identifier();
-    std::vector<antlr4::tree::TerminalNode *> LeftBracket();
-    antlr4::tree::TerminalNode* LeftBracket(size_t i);
-    std::vector<antlr4::tree::TerminalNode *> RightBracket();
-    antlr4::tree::TerminalNode* RightBracket(size_t i);
-    std::vector<ExpContext *> exp();
-    ExpContext* exp(size_t i);
+    antlr4::tree::TerminalNode *LeftBracket();
+    antlr4::tree::TerminalNode *RightBracket();
+    antlr4::tree::TerminalNode *LeftParen();
+    antlr4::tree::TerminalNode *RightParen();
+    ExpContext *exp();
 
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
@@ -610,8 +608,6 @@ public:
 
   class  FuncRParamsContext : public antlr4::ParserRuleContext {
   public:
-    SysYParser::ExpContext *expContext = nullptr;
-    std::vector<ExpContext *> params;
     FuncRParamsContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     std::vector<ExpContext *> exp();
@@ -630,7 +626,6 @@ public:
 
   class  MulExpContext : public antlr4::ParserRuleContext {
   public:
-    antlr4::Token *op = nullptr;
     MulExpContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     UnaryExpContext *unaryExp();
@@ -650,7 +645,6 @@ public:
   MulExpContext* mulExp(int precedence);
   class  AddExpContext : public antlr4::ParserRuleContext {
   public:
-    antlr4::Token *op = nullptr;
     AddExpContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     MulExpContext *mulExp();
@@ -669,7 +663,6 @@ public:
   AddExpContext* addExp(int precedence);
   class  RelExpContext : public antlr4::ParserRuleContext {
   public:
-    antlr4::Token *op = nullptr;
     RelExpContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     AddExpContext *addExp();
@@ -690,7 +683,6 @@ public:
   RelExpContext* relExp(int precedence);
   class  EqExpContext : public antlr4::ParserRuleContext {
   public:
-    antlr4::Token *op = nullptr;
     EqExpContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     RelExpContext *relExp();
@@ -746,12 +738,6 @@ public:
     ConstExpContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     AddExpContext *addExp();
-    MulExpContext *mulExp();
-    UnaryExpContext *unaryExp();
-    RelExpContext *relExp();
-    EqExpContext *eqExp();
-    LAndExpContext *lAndExp();
-    LOrExpContext *lOrExp();
 
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;

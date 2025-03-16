@@ -87,9 +87,9 @@ int main(int argc, const char* argv[]) {
     // 输出解析树（用于调试）`
     cout << "Parse Tree: " << endl;
     cout << tree->toStringTree(&parser) << endl;
+    std::vector<std::string> ruleNames = parser.getRuleNames();
     cout << "My Visitor:";
-    KTC::MyVisitor visitor;
+    KTC::MyVisitor visitor("AST.dot",ruleNames);
     visitor.visitTree(tree);
-    std::cout << visitor.oss.str();
     return 0;
 }
