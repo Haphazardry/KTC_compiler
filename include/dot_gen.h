@@ -70,7 +70,7 @@ namespace KTC{
     }
 
     // 输出节点的 DOT 描述，显示规则名称和节点文本
-    dot << currentNodeId <<" [label=\"" << currentNodeId << " " << ruleName << ": " << label << "\", shape=record];\n";
+    dot << currentNodeId <<" [label=\"" << currentNodeId << ""<< ruleName << ": " << label << "\", shape=record];\n";
 
     for (size_t i = 0; i < node->children.size(); ++i) {
         int childId = visitNode(node->children[i]);
