@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/TableGen/Record.h"
 #include "llvm/TableGen/TableGenBackend.h"
@@ -12,205 +11,34 @@
 #include <vector>
 
 const static auto variantDeclStr = "using {0}=std::variant<{1}>;\n";
-const static auto defDeclStr = "class {0}{\n{1}};\n\n";
+const static auto defDeclStr = "class {0}{{\n{1}}};\n\n";
+const static auto getStringMethod = R"(
+    void get_string(std::ostream& os) const {{
+        {0};
+    }
+)";
+const static auto getClassMemberMethod = R"(
+    {0};
+)";
+
+const static auto visitorDeclStr = R"(
+    struct Visitor {{
+        std::ostream& os;
+    {0}
+    };
+};
+)";
+
 namespace llvm {
 void EmitKTCDecls(const RecordKeeper &records, raw_ostream &os) {
-    emitSourceFileHeader("KTC Declarations", os, records);
-
-    // ÎÄ¼şÍ·£¬°üº¬±ØÒªµÄ¿â
-    os << "#include <optional>\n";
-    os << "#include <variant>\n";
-    os << "#include <vector>\n";
-    // os << "#include ";
-    os << "#include <memory>\n\n";
-
-    // ´¦Àí GloblStruct ºÍ VariantMember
-    const auto &defs = records.getDefs();
-    for (const auto &def : defs) {
-        const std::string &defName = def.first;     // »ñÈ¡ def µÄÃû³Æ
-        const Record *defRecord = def.second.get(); // »ñÈ¡ def µÄ Record ¶ÔÏó
-
-        // Ìø¹ıÅÉÉú×Ô Enumeration µÄ¼ÇÂ¼
-        if (defRecord->isSubClassOf("Enumeration")) { continue; }
-
-        // Ìø¹ıÄäÃû¼ÇÂ¼
-        if (defRecord->isAnonymous()) { continue; }
-
-        // ¼ì²éÊÇ·ñÊÇ GloblStruct »ò VariantMember
-        if (defRecord->isSubClassOf("GloblStruct")) {
-            // »ñÈ¡ fields ×Ö¶Î
-            const DagInit *fields = defRecord->getValueAsDag("fields");
-            if (!fields) {
-                os << "// Error: No fields found for " << defName << "\n";
-                continue;
-            }
-
-            // Éú³É½á¹¹Ìå¶¨Òå
-            os << "class " << defName << " {\n";
-
-            // ±éÀú fields µÄÃ¿¸ö²ÎÊı
-            for (unsigned i = 0; i < fields->getNumArgs(); ++i) {
-                const Init *arg = fields->getArg(i);
-                std::string argName = fields->getArgNameStr(i).str(); // »ñÈ¡²ÎÊıÀàĞÍ
-                std::string argType = arg->getAsString();      // »ñÈ¡²ÎÊıÃû³Æ
-
-                // È¥µô argType µÄ¿ªÍ·ºÍ½áÎ²µÄÒıºÅ
-                if (!argType.empty() && argType.front() == '"' && argType.back() == '"') {
-                    argType = argType.substr(1, argType.size() - 2);
-                }
-                
-                os << "    " << argType << " " << argName << ";\n";
-            }
-
-            os << "};\n\n";
-
-            // Éú³Éµ÷ÊÔĞÅÏ¢²¢´òÓ¡µ½ÃüÁîĞĞ
-            if (defRecord->getValue("fmt")) {
-                std::string fmt = defRecord->getValueAsString("fmt").str(); // »ñÈ¡ fmt ×Ö¶Î
-                 // Èç¹û fmt ·Ç¿Õ£¬ÔòÉú³Éµ÷ÊÔĞÅÏ¢
-                if (!fmt.empty()) {
-                    std::ostringstream oss;
-
-                    // Ìæ»» fmt ÖĞµÄÕ¼Î»·û
-                    for (unsigned i = 0; i < fields->getNumArgs(); ++i) {
-                        const Init *arg = fields->getArg(i);
-                        std::string argName = arg->getAsString();
-
-                        // È¥µô argName µÄ¿ªÍ·ºÍ½áÎ²µÄÒıºÅ
-                        if (!argName.empty() && argName.front() == '"' && argName.back() == '"') {
-                            argName = argName.substr(1, argName.size() - 2);
-                        }
-
-                        // Ìæ»»Õ¼Î»·û
-                        size_t pos = fmt.find("$" + fields->getArgNameStr(i).str());
-                        if (pos != std::string::npos) {
-                            fmt.replace(pos, fields->getArgNameStr(i).str().length() + 1, argName);
-                        }
-                    }
-
-                    oss << fmt << "\n";
-                    llvm::outs() << "// Debug: " << oss.str(); // ´òÓ¡µ½ÃüÁîĞĞ
-                }
-            }
-        }
-    }
-    // ´¦Àí Variant
-    auto variants = records.getAllDerivedDefinitions("Variant");
-    for (const auto *def : variants) {
-        std::string variantName = def->getName().str();
-
-        // »ñÈ¡ members ×Ö¶Î
-        const auto *members = def->getValueAsListInit("members");
-        if (!members) {
-            os << "// Error: No members found for " << variantName << "\n";
-            continue;
-        }
-
-        std::stringstream oss;
-        for (const auto *member : *members) {
-            if (const auto *defValue = dyn_cast<DefInit>(member)) {
-                oss << defValue->getDef()->getName().str() << ",";
-            }
-        }
-
-        std::string memberList = oss.str();
-        if (!memberList.empty()) {
-            memberList.pop_back(); // ÒÆ³ı×îºóÒ»¸ö¶ººÅ
-        }
-
-        os << formatv(variantDeclStr, variantName, memberList);
-    }
-
-    // ´¦Àí Enumeration
-    const auto &enums = records.getAllDerivedDefinitions("Enumeration");
-    for (const auto *enumDef : enums) {
-        std::string enumName = enumDef->getName().str(); // »ñÈ¡Ã¶¾ÙÀàĞÍµÄÃû³Æ
-
-        // »ñÈ¡Ã¶¾ÙÖµÁĞ±í
-        const auto *values = enumDef->getValueAsListInit("values");
-        if (!values) {
-            os << "enum class " << enumName << " {};\n\n"; // Èç¹ûÃ¶¾ÙÖµÁĞ±íÎª¿Õ£¬Éú³É¿ÕÃ¶¾Ù
-            continue;
-        }
-
-        os << "enum class " << enumName << " {\n";
-
-        // ±éÀúÃ¶¾ÙÖµ£¨´ø×¢ÊÍ£©
-        for (size_t i = 0; i < values->size(); ++i) {
-            const auto *value = values->getElement(i);
-            if (const auto *defValue = dyn_cast<DefInit>(value)) {
-                const Record *enumValue = defValue->getDef();
-
-                std::string valueName = enumValue->getValueAsString("Name").str();
-                std::string comment = enumValue->getValueAsString("Comment").str();
-
-                os << "    " << valueName;
-                if (!comment.empty()) {
-                    os << ", // " << comment;
-                }
-                if (i != values->size() - 1) {
-                    os << "\n";
-                }
-            }
-        }
-
-        os << "\n};\n\n"; // ½áÊøÃ¶¾Ù¶¨Òå
-    }
-}
-
-} // namespace llvm
-
-// // ±éÀúÃ¶¾ÙÖµ ÎŞ×¢ÊÍ
-    // for (size_t i = 0; i < values->size(); ++i) {
-    //     const auto *value = values->getElement(i);
-    //     if (const auto *strValue = dyn_cast<StringInit>(value)) {
-    //         // ½« StringRef ×ª»»Îª std::string
-    //         os << "    " << strValue->getValue().str(); 
-    //         if (i != values->size() - 1) {
-    //             os << ",";
-    //         }
-    //         os << "\n";
-    //     }
-    // }
-
-        
-
-
-// static void emitKTCDefs(const RecordKeeper &records, raw_ostream &os) {
-//     emitSourceFileHeader("KTC Declarations", os, records);
-  
-//     auto dialectDefs = records.getAllDerivedDefinitions("Dialect");
-//     if (dialectDefs.empty())
-//       return false;
-  
-//     SmallVector<Dialect> dialects(dialectDefs.begin(), dialectDefs.end());
-//     std::optional<Dialect> dialect = findDialectToGenerate(dialects);
-//     emitDialectDecl(*dialect, os);
-=======
-#include "llvm/Support/FormatVariadic.h"
-#include "llvm/TableGen/Record.h"
-#include "llvm/TableGen/TableGenBackend.h"
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Signals.h"
-#include "llvm/TableGen/Error.h"
-#include "llvm/Support/raw_ostream.h"
-#include <iostream>
-#include <sstream>
-#include <vector>
-
-const static auto variantDeclStr = "using {0}=std::variant<{1}>;\n";
-const static auto defDeclStr = "class {0}{\n{1}};\n\n";
-namespace llvm {
-void EmitKTCDecls(RecordKeeper &records, raw_ostream &os) {
     emitSourceFileHeader("KTC Declarations", os, records);
 
     // æ–‡ä»¶å¤´ï¼ŒåŒ…å«å¿…è¦çš„åº“
     os << "#include <optional>\n";
     os << "#include <variant>\n";
     os << "#include <vector>\n";
-    // os << "#include ";
-    os << "#include <memory>\n\n";
+    os << "#include <memory>\n";
+    os << "#include <iostream>\n\n";
 
     // å¤„ç† GloblStruct å’Œ VariantMember
     const auto &defs = records.getDefs();
@@ -225,7 +53,7 @@ void EmitKTCDecls(RecordKeeper &records, raw_ostream &os) {
         if (defRecord->isAnonymous()) { continue; }
 
         // æ£€æŸ¥æ˜¯å¦æ˜¯ GloblStruct æˆ– VariantMember
-        if (defRecord->isSubClassOf("Struct")) {
+        if (defRecord->isSubClassOf("GloblStruct")) {
             // è·å– fields å­—æ®µ
             const DagInit *fields = defRecord->getValueAsDag("fields");
             if (!fields) {
@@ -237,51 +65,94 @@ void EmitKTCDecls(RecordKeeper &records, raw_ostream &os) {
             os << "class " << defName << " {\n";
 
             // éå† fields çš„æ¯ä¸ªå‚æ•°
-            for (unsigned i = 0; i < fields->getNumArgs(); ++i) {
-                const Init *arg = fields->getArg(i);
-                std::string argName = fields->getArgNameStr(i).str(); // è·å–å‚æ•°ç±»å‹
-                std::string argType = arg->getAsString();      // è·å–å‚æ•°åç§°
+            std::stringstream getStringBody;
+            std::stringstream getClassMemberBody;
+            std::string fmt = defRecord->getValueAsString("fmt").str(); // è·å– fmt å­—æ®µ
+            if (!fmt.empty()) {
+                // æ›¿æ¢ fmt ä¸­çš„å ä½ç¬¦
+                for (unsigned i = 0; i < fields->getNumArgs(); ++i) {
+                    const Init *arg = fields->getArg(i);
+                    std::string argName = fields->getArgNameStr(i).str(); // è·å–å‚æ•°åç§°
+                    std::string argType = arg->getAsString();             // è·å–å‚æ•°ç±»å‹
 
-                // å»æ‰ argType çš„å¼€å¤´å’Œç»“å°¾çš„å¼•å·
-                if (!argType.empty() && argType.front() == '"' && argType.back() == '"') {
-                    argType = argType.substr(1, argType.size() - 2);
-                }
-                
-                os << "    " << argType << " " << argName << ";\n";
-            }
-
-            os << "};\n\n";
-
-            // ç”Ÿæˆè°ƒè¯•ä¿¡æ¯å¹¶æ‰“å°åˆ°å‘½ä»¤è¡Œ
-            if (defRecord->getValue("fmt")) {
-                std::string fmt = defRecord->getValueAsString("fmt").str(); // è·å– fmt å­—æ®µ
-                 // å¦‚æœ fmt éç©ºï¼Œåˆ™ç”Ÿæˆè°ƒè¯•ä¿¡æ¯
-                if (!fmt.empty()) {
-                    std::ostringstream oss;
-
-                    // æ›¿æ¢ fmt ä¸­çš„å ä½ç¬¦
-                    for (unsigned i = 0; i < fields->getNumArgs(); ++i) {
-                        const Init *arg = fields->getArg(i);
-                        std::string argName = arg->getAsString();
-
-                        // å»æ‰ argName çš„å¼€å¤´å’Œç»“å°¾çš„å¼•å·
-                        if (!argName.empty() && argName.front() == '"' && argName.back() == '"') {
-                            argName = argName.substr(1, argName.size() - 2);
-                        }
-
-                        // æ›¿æ¢å ä½ç¬¦
-                        size_t pos = fmt.find("$" + fields->getArgNameStr(i).str());
-                        if (pos != std::string::npos) {
-                            fmt.replace(pos, fields->getArgNameStr(i).str().length() + 1, argName);
-                        }
+                    // å»æ‰ argType çš„å¼€å¤´å’Œç»“å°¾çš„å¼•å·
+                    if (!argType.empty() && argType.front() == '"' && argType.back() == '"') {
+                        argType = argType.substr(1, argType.size() - 2);
                     }
 
-                    oss << fmt << "\n";
-                    llvm::outs() << "// Debug: " << oss.str(); // æ‰“å°åˆ°å‘½ä»¤è¡Œ
+                    // æ›¿æ¢ fmt ä¸­çš„å ä½ç¬¦
+                    size_t pos = fmt.find("$" + argName);
+                    if (pos != std::string::npos) {
+                        fmt.replace(pos, argName.length() + 1, "{" + argName + "}");
+                    }
+                }
+                // åœ¨publicä¸­æ·»åŠ æˆå‘˜å˜é‡
+                for (unsigned i = 0; i < fields->getNumArgs(); ++i) {
+                    const Init *arg = fields->getArg(i);
+                    std::string argName = fields->getArgNameStr(i).str(); // è·å–å‚æ•°åç§°
+                    std::string argType = arg->getAsString();             // è·å–å‚æ•°ç±»å‹
+
+                    // å»æ‰ argType çš„å¼€å¤´å’Œç»“å°¾çš„å¼•å·
+                    if (!argType.empty() && argType.front() == '"' && argType.back() == '"') {
+                        argType = argType.substr(1, argType.size() - 2);
+                    }
+                    getClassMemberBody << argType << " "<< argName << ";\n\t";
+                }
+                // ç”Ÿæˆ get_string æ–¹æ³•
+                getStringBody << "os << \"" << fmt << "\";\n\t\t";
+                for (unsigned i = 0; i < fields->getNumArgs(); ++i) {
+                    const Init *arg = fields->getArg(i);
+                    std::string argName = fields->getArgNameStr(i).str(); // è·å–å‚æ•°åç§°
+                    std::string argType = arg->getAsString();             // è·å–å‚æ•°ç±»å‹
+
+                    // å»æ‰ argType çš„å¼€å¤´å’Œç»“å°¾çš„å¼•å·
+                    if (!argType.empty() && argType.front() == '"' && argType.back() == '"') {
+                        argType = argType.substr(1, argType.size() - 2);
+                    }
+                    
+                    //è¿›è¡Œç‰¹åˆ¤
+                    std::string stdvec_opt = "std::vector<std::optional";
+                    std::string stdvec = "std::vector";
+                    std::string stdopt = "std::optional";
+                    std::string stdshared_ptr = "std::shared_ptr";
+                    //1. ç±»å‹ä»¥std::vectorå¼€å¤´
+                    if (argType.substr(0,stdvec_opt.size()) == stdvec_opt){ // std::vector<std::optional
+                        getStringBody << "os << \"{\";\n\t\t";
+                        getStringBody << "for (auto arg : "<< argName << "){\n\t\t\targ.value().get_string(os);\n\t\t}";
+                        getStringBody << "os << \"}\";\n\t\t";
+                    }else if(argType.substr(0,stdvec.size()) == stdvec){    // std::vector
+                        getStringBody << "os << \"{\";\n\t\t";
+                        getStringBody << "for (auto arg : "<< argName << "){\n\t\t\targ.get_string(os);\n\t\t}";
+                        getStringBody << "os << \"}\";\n\t\t";
+                    } else if (argType.substr(0,stdopt.size()) == stdopt){  // std::optional
+                        getStringBody << "os << \"{\";\n\t\t";
+                        getStringBody << "if (" << argName << ".has_value()){\n\t\t\t" << argName << ".value().get_string(os);\n\t\t}";
+                        getStringBody << "os << \"}\";\n\t\t";
+                    } else if (argType == "int"){                           // int
+                        getStringBody << "os << \"{\";\n\t\t";
+                        getStringBody << "os <<" + argName + "\n\t\t;";
+                        getStringBody << "os << \"}\";\n\t\t";
+                    }else if (argType.substr(0,stdshared_ptr.size()) == stdshared_ptr) {  // std::shared_ptr
+                        getStringBody << "os << \"{\";\n\t\t";
+                        getStringBody << "this->" + argName + ".get()->get_string(os);\n\t\t";
+                        getStringBody << "os << \"}\";\n\t\t";
+                    }else {
+                        getStringBody << "os << \"{\";\n\t\t";
+                        getStringBody << "this->" << argName << ".get_string(os);\n\t\t"; // ä½¿ç”¨ this-> è®¿é—®æˆå‘˜å˜é‡
+                        getStringBody << "os << \"}\";\n\t\t";
+                    }    
                 }
             }
+
+            // æ·»åŠ  get_string æ–¹æ³•
+            os << "public:\n";
+            os << formatv(getClassMemberMethod,getClassMemberBody.str());
+            os << formatv(getStringMethod, getStringBody.str());
+
+            os << "};\n\n";
         }
     }
+
     // å¤„ç† Variant
     auto variants = records.getAllDerivedDefinitions("Variant");
     for (const auto *def : variants) {
@@ -306,7 +177,25 @@ void EmitKTCDecls(RecordKeeper &records, raw_ostream &os) {
             memberList.pop_back(); // ç§»é™¤æœ€åä¸€ä¸ªé€—å·
         }
 
-        os << formatv(variantDeclStr, variantName, memberList);
+        // ç”Ÿæˆ variant å®šä¹‰
+        os << formatv(variantDeclStr, variantName+"Var", memberList);
+        os << "class " + variantName + "{\npublic :\n\t"+ variantName + "(" + variantName + "Var " + R"(variant):variant( variant){}
+    void get_string(std::ostream& os) const{
+        std::visit(Visitor{os}, variant);
+    }
+private:)" + "\n\t" + variantName + "Var variant;";
+        // ç”Ÿæˆ Visitor è®¿é—®å™¨
+        std::stringstream visitorBody;
+        for (const auto *member : *members) {
+            if (const auto *defValue = dyn_cast<DefInit>(member)) {
+                std::string memberName = defValue->getDef()->getName().str();
+                visitorBody << "\tvoid operator()(const " << memberName << "& instr) const {\n\t";
+                visitorBody << "\t\tinstr.get_string(os);\n\t";
+                visitorBody << "\t}\n\t";
+            }
+        }
+
+        os << formatv(visitorDeclStr, visitorBody.str());
     }
 
     // å¤„ç† Enumeration
@@ -317,62 +206,60 @@ void EmitKTCDecls(RecordKeeper &records, raw_ostream &os) {
         // è·å–æšä¸¾å€¼åˆ—è¡¨
         const auto *values = enumDef->getValueAsListInit("values");
         if (!values) {
-            os << "enum class " << enumName << " {};\n\n"; // å¦‚æœæšä¸¾å€¼åˆ—è¡¨ä¸ºç©ºï¼Œç”Ÿæˆç©ºæšä¸¾
+            os << "class " << enumName << " {};\n\n"; // å¦‚æœæšä¸¾å€¼åˆ—è¡¨ä¸ºç©ºï¼Œç”Ÿæˆç©ºæšä¸¾
             continue;
         }
-
-        os << "enum class " << enumName << " {\n";
+        os << "class " << enumName << " {\n";
+        os << "public:\n\tenum class "+ enumName + "Type {\n";
 
         // éå†æšä¸¾å€¼ï¼ˆå¸¦æ³¨é‡Šï¼‰
         for (size_t i = 0; i < values->size(); ++i) {
             const auto *value = values->getElement(i);
             if (const auto *defValue = dyn_cast<DefInit>(value)) {
                 const Record *enumValue = defValue->getDef();
-
+                // name
                 std::string valueName = enumValue->getValueAsString("Name").str();
+                // comment
                 std::string comment = enumValue->getValueAsString("Comment").str();
 
-                os << "    " << valueName;
+                os << "\t\t" << valueName;
                 if (!comment.empty()) {
-                    os << ", // " << comment;
+                    os << ",\t// " << comment;
                 }
                 if (i != values->size() - 1) {
                     os << "\n";
                 }
             }
         }
+        os << "}\n\t};\n\n"; // ç»“æŸæšä¸¾å®šä¹‰
+        os << enumName <<"("+ enumName +"Type t) : t(t){}\n";
+        os << enumName << "Type t ;\n" ;
 
-        os << "\n};\n\n"; // ç»“æŸæšä¸¾å®šä¹‰
+        for (size_t i = 0; i < values->size(); ++i) {
+            const auto *value = values->getElement(i);
+            if (const auto *defValue = dyn_cast<DefInit>(value)) {
+                const Record *enumValue = defValue->getDef();
+                // name
+                std::string valueName = enumValue->getValueAsString("Name").str();
+                os << enumName + " new_" + valueName + "(){return " + enumName + "(" + enumName +"Type::" + valueName + ");}\n";
+            }
+        }
+        
+        os << "void get_string(std::ostream& os) const{\nswitch (Type) {\n";
+        for (size_t i = 0; i < values->size(); ++i) {
+            const auto *value = values->getElement(i);
+            if (const auto *defValue = dyn_cast<DefInit>(value)) {
+                const Record *enumValue = defValue->getDef();
+                // name
+                std::string valueName = enumValue->getValueAsString("Name").str();
+                os << "case " + enumName + "Type::" + valueName +":\n\t\tos<<\"" + valueName + "\";\nbreak;\n";
+            }
+        }
+        os << "}\n}\n";
+        os << "private :\n" ;
+        os << enumName + "Type Type;\n" ;
+        os << "};";
     }
 }
 
 } // namespace llvm
-
-// // éå†æšä¸¾å€¼ æ— æ³¨é‡Š
-    // for (size_t i = 0; i < values->size(); ++i) {
-    //     const auto *value = values->getElement(i);
-    //     if (const auto *strValue = dyn_cast<StringInit>(value)) {
-    //         // å°† StringRef è½¬æ¢ä¸º std::string
-    //         os << "    " << strValue->getValue().str(); 
-    //         if (i != values->size() - 1) {
-    //             os << ",";
-    //         }
-    //         os << "\n";
-    //     }
-    // }
-
-        
-
-
-// static void emitKTCDefs(const RecordKeeper &records, raw_ostream &os) {
-//     emitSourceFileHeader("KTC Declarations", os, records);
-  
-//     auto dialectDefs = records.getAllDerivedDefinitions("Dialect");
-//     if (dialectDefs.empty())
-//       return false;
-  
-//     SmallVector<Dialect> dialects(dialectDefs.begin(), dialectDefs.end());
-//     std::optional<Dialect> dialect = findDialectToGenerate(dialects);
-//     emitDialectDecl(*dialect, os);
->>>>>>> fd272d2af98b7bbdb1ae3c5d49fc1d4690d4d787
-//   }
